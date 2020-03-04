@@ -63,6 +63,9 @@ def memsrc : Operand<i16> {
 
 def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], []>;
 
+def SDT_TeakWrapper : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisPtrTy<0>]>;
+def TeakWrapper : SDNode<"TeakISD::WRAPPER", SDT_TeakWrapper>; 
+
 // //===----------------------------------------------------------------------===//
 // // Operand Definitions.
 // //===----------------------------------------------------------------------===//

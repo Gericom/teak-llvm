@@ -37,7 +37,8 @@ enum NodeType {
   CALL,
   CMPICC,
   BRICC,
-  SELECT_ICC
+  SELECT_ICC,
+  WRAPPER
 };
 }
 

@@ -3894,6 +3894,12 @@ void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
         // N = N + Offset
         uint64_t Offset = DL->getStructLayout(StTy)->getElementOffset(Field);
 
+        if(TM.getTargetTriple().getArch() == Triple::teak)
+        {
+            assert((Offset & 1) == 0 && "Field offset is not word-aligned!");
+            Offset >>= 1;
+        }
+
         // In an inbounds GEP with an offset that is nonnegative even when
         // interpreted as signed, assume there is no unsigned overflow.
         SDNodeFlags Flags;
@@ -3947,20 +3953,42 @@ void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
       // it.
       IdxN = DAG.getSExtOrTrunc(IdxN, dl, N.getValueType());
 
-      // If this is a multiply by a power of two, turn it into a shl
-      // immediately.  This is a very common case.
-      if (ElementSize != 1) {
-        if (ElementSize.isPowerOf2()) {
-          unsigned Amt = ElementSize.logBase2();
-          IdxN = DAG.getNode(ISD::SHL, dl,
-                             N.getValueType(), IdxN,
-                             DAG.getConstant(Amt, dl, IdxN.getValueType()));
-        } else {
-          SDValue Scale = DAG.getConstant(ElementSize.getZExtValue(), dl,
-                                          IdxN.getValueType());
-          IdxN = DAG.getNode(ISD::MUL, dl,
-                             N.getValueType(), IdxN, Scale);
-        }
+      if(TM.getTargetTriple().getArch() == Triple::teak)
+      {
+          assert((ElementSize.getZExtValue() & 1) == 0 && "ElementSize is not word-aligned!");
+          // If this is a multiply by a power of two, turn it into a shl
+          // immediately.  This is a very common case.
+          if ((ElementSize.getZExtValue() >> 1) != 1) {
+            if (ElementSize.isPowerOf2()) {
+              unsigned Amt = ElementSize.logBase2() - 1;
+              IdxN = DAG.getNode(ISD::SHL, dl,
+                                N.getValueType(), IdxN,
+                                DAG.getConstant(Amt, dl, IdxN.getValueType()));
+            } else {
+              SDValue Scale = DAG.getConstant(ElementSize.getZExtValue() >> 1, dl,
+                                              IdxN.getValueType());
+              IdxN = DAG.getNode(ISD::MUL, dl,
+                                N.getValueType(), IdxN, Scale);
+            }
+          }
+      }
+      else
+      {
+          // If this is a multiply by a power of two, turn it into a shl
+          // immediately.  This is a very common case.
+          if (ElementSize != 1) {
+            if (ElementSize.isPowerOf2()) {
+              unsigned Amt = ElementSize.logBase2();
+              IdxN = DAG.getNode(ISD::SHL, dl,
+                                N.getValueType(), IdxN,
+                                DAG.getConstant(Amt, dl, IdxN.getValueType()));
+            } else {
+              SDValue Scale = DAG.getConstant(ElementSize.getZExtValue(), dl,
+                                              IdxN.getValueType());
+              IdxN = DAG.getNode(ISD::MUL, dl,
+                                N.getValueType(), IdxN, Scale);
+            }
+          }
       }
 
       N = DAG.getNode(ISD::ADD, dl,

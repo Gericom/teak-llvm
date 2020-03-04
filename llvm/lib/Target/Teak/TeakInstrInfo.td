@@ -90,6 +90,13 @@ def ADDV_imm16_RegNoBRegs16 : InstTeakImm16<
     "addv $val, $a",
     [(set RegNoBRegs16:$dst, (add RegNoBRegs16:$a, immNeg32768_32767_16:$val))]>;
 
+let Defs = [ICC], isCommutable = 1 in
+def ADDV_imm16_memrn : InstTeakImm16<
+    (outs ),
+    (ins immNeg32768_32767_16:$val, GRRegs:$addr),
+    "addv $val, [$addr]",
+    [(store (add (load GRRegs:$addr), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+
 let Defs = [ICC], Constraints = "$dst = $a" in
 def AND_imm16_a : InstTeakImm16<
     (outs ARegs:$dst),
@@ -531,3 +538,8 @@ def ADJCALLSTACKUP   : TeakPseudoInst<(outs), (ins i16imm:$amt1, i16imm:$amt2),
 
 def RawAsmOp : InstTeak<(outs), (ins i16imm:$opcode), ".word $opcode", []>;
 def RawAsmOpExtended : InstTeakImm16<(outs), (ins i16imm:$opcode, i16imm:$ext), ".word $opcode, $ext", []>;
+
+def : Pat<(i16 (TeakWrapper tglobaladdr:$dst)), (MOV_imm16_regnob16 tglobaladdr:$dst)>;
+def : Pat<(i40 (sextloadi16 (TeakWrapper tglobaladdr:$src))), (MOV_memimm16_a tglobaladdr:$src)>;
+def : Pat<(store ALRegs:$src, (i16 (TeakWrapper tglobaladdr:$dst))), (MOV_al2_memimm16 ALRegs:$src, tglobaladdr:$dst)>;
+def : Pat<(truncstorei16 ARegs:$src, (i16 (TeakWrapper tglobaladdr:$dst))), (MOV_al_memimm16 ARegs:$src, tglobaladdr:$dst)>;

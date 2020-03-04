@@ -394,13 +394,13 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
 
 SDValue TeakTargetLowering::LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const
 {
-	dbgs() << "TeakTargetLowering::LowerGlobalAddress\n";
 	EVT VT = Op.getValueType();
 	GlobalAddressSDNode *GlobalAddr = cast<GlobalAddressSDNode>(Op.getNode());
+	int64_t Offset = cast<GlobalAddressSDNode>(Op)->getOffset();
 	if(VT == MVT::i16)
-		return DAG.getTargetGlobalAddress(GlobalAddr->getGlobal(), Op, MVT::i16);
+		return DAG.getNode(TeakISD::WRAPPER, SDLoc(Op), MVT::i16, DAG.getTargetGlobalAddress(GlobalAddr->getGlobal(), Op, MVT::i16, Offset));
 	else
-		return DAG.getTargetGlobalAddress(GlobalAddr->getGlobal(), Op, MVT::i40);
+		return DAG.getNode(TeakISD::WRAPPER, SDLoc(Op), MVT::i40, DAG.getTargetGlobalAddress(GlobalAddr->getGlobal(), Op, MVT::i40, Offset));
 }
 
 //===----------------------------------------------------------------------===//
@@ -498,17 +498,25 @@ SDValue TeakTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   // Build a sequence of copy-to-reg nodes chained together with token chain
   // and flag operands which copy the outgoing args into the appropriate regs.
   SDValue InFlag;
-  for (auto &Reg : RegsToPass) {
+  for (auto &Reg : RegsToPass)
+  {
 	Chain = DAG.getCopyToReg(Chain, Loc, Reg.first, Reg.second, InFlag);
 	InFlag = Chain.getValue(1);
   }
 
   // We only support calling global addresses.
-  GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee);
-  assert(G && "We only support the calling of global addresses");
+  //GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee);
+  //assert(G && "We only support the calling of global addresses");
 
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
-  Callee = DAG.getGlobalAddress(G->getGlobal(), Loc, PtrVT, 0);
+  //EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  //Callee = DAG.getGlobalAddress(G->getGlobal(), Loc, PtrVT, 0);
+  if (const GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee))
+  {
+    	const GlobalValue *GV = G->getGlobal();
+    	Callee = DAG.getTargetGlobalAddress(GV, Loc, MVT::i40);
+  } 
+  else if (const ExternalSymbolSDNode *ES = dyn_cast<ExternalSymbolSDNode>(Callee))
+    	Callee = DAG.getTargetExternalSymbol(ES->getSymbol(), MVT::i40);
 
   std::vector<SDValue> Ops;
   Ops.push_back(Chain);

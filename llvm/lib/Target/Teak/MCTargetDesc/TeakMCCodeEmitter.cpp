@@ -318,6 +318,10 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             EmitConstant(0x87E0 | encodeRegisterOp(MI.getOperand(0).getReg()), 2, OS);
             EmitConstant(MI.getOperand(1).getImm() & 0xFFFF, 2, OS);
             break;
+        case Teak::ADDV_imm16_memrn:
+            EmitConstant(0x86E0 | encodeRnOp(MI.getOperand(1).getReg()), 2, OS);
+            EmitConstant(MI.getOperand(0).getImm() & 0xFFFF, 2, OS);
+            break;
         case Teak::AND_imm16_a:
             EmitConstant(0x82C0 | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
             EmitConstant(MI.getOperand(1).getImm() & 0xFFFF, 2, OS);
@@ -382,7 +386,13 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                 EmitConstant(0x5E00 | encodeRegisterOp(reg), 2, OS);
             else
                 EmitConstant(0x5E20 | (encodeBxOp(reg) << 8), 2, OS);
-            EmitConstant(MI.getOperand(1).getImm() & 0xFFFF, 2, OS);
+            if(MI.getOperand(1).isImm() || MI.getOpcode() == Teak::MOV_imm16hi_ab)
+                EmitConstant(MI.getOperand(1).getImm() & 0xFFFF, 2, OS);
+            else
+            {
+                EmitConstant(0, 2, OS);
+                Fixups.push_back(MCFixup::create(0, MI.getOperand(1).getExpr(), MCFixupKind(Teak::fixup_teak_ptr_imm16)));
+            }
             break;
         }
         case Teak::MOV_ab_ab:
