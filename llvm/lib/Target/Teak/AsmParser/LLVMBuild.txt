@@ -1,0 +1,6 @@
+[component_0]
+type = Library
+name = TeakAsmParser
+parent = Teak
+required_libraries = MC MCParser TeakDesc TeakInfo Support
+add_to_library_groups = Teak

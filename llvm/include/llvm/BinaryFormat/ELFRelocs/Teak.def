@@ -1,0 +1,8 @@
+#ifndef ELF_RELOC
+#error "ELF_RELOC must be defined"
+#endif
+
+ELF_RELOC(R_TEAK_NONE,                0)
+ELF_RELOC(R_TEAK_16,                  1)
+ELF_RELOC(R_TEAK_CALL_IMM18,          2)
+ELF_RELOC(R_TEAK_PTR_IMM16,           3)

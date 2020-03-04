@@ -33,6 +33,7 @@ subdirectories =
  RISCV
  Sparc
  SystemZ
+ Teak
  VE
  WebAssembly
  X86

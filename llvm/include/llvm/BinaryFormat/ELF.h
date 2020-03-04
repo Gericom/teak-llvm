@@ -311,6 +311,7 @@ enum {
   EM_RISCV = 243,         // RISC-V
   EM_LANAI = 244,         // Lanai 32-bit processor
   EM_BPF = 247,           // Linux kernel bpf virtual machine
+  EM_TEAK = 998
 };
 
 // Object file classes.
@@ -368,6 +369,11 @@ enum {
 // i386 relocations.
 enum {
 #include "ELFRelocs/i386.def"
+};
+
+// ELF Relocation types for Teak
+enum {
+#include "ELFRelocs/Teak.def"
 };
 
 // ELF Relocation types for PPC32

@@ -145,6 +145,13 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
       break;
     }
     break;
+  case ELF::EM_TEAK:
+    switch (Type) {
+#include "llvm/BinaryFormat/ELFRelocs/Teak.def"
+    default:
+      break;
+    }
+    break;
   default:
     break;
   }
