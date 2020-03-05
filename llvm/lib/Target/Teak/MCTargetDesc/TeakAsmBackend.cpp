@@ -123,11 +123,11 @@ void TeakAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
     switch (Kind)
     {
         case Teak::fixup_teak_call_imm18:
-            write16le(&Data[Offset], (read16le(&Data[Offset]) & ~0x30) | (((Value >> 17) & 3) << 4));
-            write16le(&Data[Offset + 2], (Value >> 1) & 0xFFFF);
+            write16le(&Data[Offset], (read16le(&Data[Offset]) & ~0x30) | (((Value >> 16) & 3) << 4));
+            write16le(&Data[Offset + 2], Value & 0xFFFF);
             break;
         case Teak::fixup_teak_ptr_imm16:
-            write16le(&Data[Offset + 2], (Value >> 1) & 0xFFFF);
+            write16le(&Data[Offset + 2], Value);
             break;
     }
 //   unsigned NumBytes = 4;

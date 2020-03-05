@@ -248,12 +248,15 @@ void TeakInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
     dbgs() << "storeRegToStackSlot\n";
     dbgs() << "SrcReg: " << SrcReg << "\n";
     dbgs() << "TargetRegisterClass: " << RC->getID() << "\n";
+    DebugLoc DL;
+    if (I != MBB.end())
+        DL = I->getDebugLoc();
     if(RC->hasSuperClassEq(&Teak::ABRegsRegClass))
-        BuildMI(MBB, I, I->getDebugLoc(), get(Teak::STORE_REG_TO_STACK_PSEUDO_32))
+        BuildMI(MBB, I, DL, get(Teak::STORE_REG_TO_STACK_PSEUDO_32))
             .addReg(SrcReg, getKillRegState(isKill))
             .addFrameIndex(FrameIndex).addImm(0);
     else
-        BuildMI(MBB, I, I->getDebugLoc(), get(Teak::STORE_REG_TO_STACK_PSEUDO_16))
+        BuildMI(MBB, I, DL, get(Teak::STORE_REG_TO_STACK_PSEUDO_16))
         .addReg(SrcReg, getKillRegState(isKill))
         .addFrameIndex(FrameIndex).addImm(0);    
 
@@ -299,11 +302,14 @@ void TeakInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
     MachineBasicBlock::iterator I,unsigned DestReg, int FrameIndex,
     const TargetRegisterClass *RC, const TargetRegisterInfo *TRI) const
 {
+    DebugLoc DL;
+    if (I != MBB.end())
+        DL = I->getDebugLoc();
     if(RC->hasSuperClassEq(&Teak::ABRegsRegClass))
-        BuildMI(MBB, I, I->getDebugLoc(), get(Teak::LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40), DestReg)
+        BuildMI(MBB, I, DL, get(Teak::LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40), DestReg)
         .addFrameIndex(FrameIndex).addImm(0);
     else
-        BuildMI(MBB, I, I->getDebugLoc(), get(Teak::LOAD_REG_FROM_STACK_PSEUDO_16), DestReg)
+        BuildMI(MBB, I, DL, get(Teak::LOAD_REG_FROM_STACK_PSEUDO_16), DestReg)
           .addFrameIndex(FrameIndex).addImm(0);
     
     //dbgs() << "DestReg: " << DestReg << "\n";

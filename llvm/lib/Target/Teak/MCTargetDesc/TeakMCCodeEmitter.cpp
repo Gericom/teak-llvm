@@ -304,11 +304,8 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                 llvm_unreachable("Unsupported registers");
             break;
         }
-        case Teak::AND_ab_ab_a:
-            EmitConstant(0x6770
-                | (encodeAbOp(MI.getOperand(1).getReg()) << 2)
-                | (encodeAbOp(MI.getOperand(2).getReg()) << 0)
-                | (encodeAxOp(MI.getOperand(0).getReg()) << 12), 2, OS);
+        case Teak::ADD_regnobp016_a:
+            EmitConstant(0x86A0 | encodeRegisterP0Op(MI.getOperand(1).getReg()) | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
             break;
         case Teak::ADD_imm16_a:
             EmitConstant(0x86C0 | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
@@ -321,6 +318,12 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::ADDV_imm16_memrn:
             EmitConstant(0x86E0 | encodeRnOp(MI.getOperand(1).getReg()), 2, OS);
             EmitConstant(MI.getOperand(0).getImm() & 0xFFFF, 2, OS);
+            break;
+        case Teak::AND_ab_ab_a:
+            EmitConstant(0x6770
+                | (encodeAbOp(MI.getOperand(1).getReg()) << 2)
+                | (encodeAbOp(MI.getOperand(2).getReg()) << 0)
+                | (encodeAxOp(MI.getOperand(0).getReg()) << 12), 2, OS);
             break;
         case Teak::AND_imm16_a:
             EmitConstant(0x82C0 | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
@@ -513,6 +516,14 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                 EmitConstant(0x8861 | (encodeBxOp(reg) << 4) | (encodeAxOp(dstReg) << 3), 2, OS);
             else
                 llvm_unreachable("Unsupported registers");
+            break;
+        }
+        case Teak::SWAP_ab:
+        {
+            unsigned aReg = MI.getOperand(2).getReg();
+            unsigned bReg = MI.getOperand(3).getReg();
+            unsigned swapOp = (encodeAxOp(aReg) << 1) | encodeBxOp(bReg);
+            EmitConstant(0x4980 | swapOp, 2, OS);
             break;
         }
         case Teak::PUSH_regnob16:

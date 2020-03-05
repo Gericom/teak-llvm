@@ -4265,7 +4265,8 @@ bool AddressingModeMatcher::matchOperationAddr(User *AddrInst, unsigned Opcode,
         const StructLayout *SL = DL.getStructLayout(STy);
         unsigned Idx =
           cast<ConstantInt>(AddrInst->getOperand(i))->getZExtValue();
-        ConstantOffset += SL->getElementOffset(Idx);
+        //TODO: Preferably detect the teak target here!
+        ConstantOffset += SL->getElementOffset(Idx) >> 1;
       } else {
         uint64_t TypeSize = DL.getTypeAllocSize(GTI.getIndexedType());
         if (ConstantInt *CI = dyn_cast<ConstantInt>(AddrInst->getOperand(i))) {

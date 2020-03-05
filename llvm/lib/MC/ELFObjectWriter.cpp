@@ -1476,9 +1476,18 @@ void ELFObjectWriter::recordRelocation(MCAssembler &Asm,
   bool RelocateWithSymbol = shouldRelocateWithSymbol(Asm, RefA, SymA, C, Type);
   uint64_t Addend = 0;
 
-  FixedValue = !RelocateWithSymbol && SymA && !SymA->isUndefined()
-                   ? C + Layout.getSymbolOffset(*SymA)
-                   : C;
+  if (TargetObjectWriter->getEMachine() == ELF::EM_TEAK)
+  {
+      FixedValue = !RelocateWithSymbol && SymA && !SymA->isUndefined()
+                      ? C + (Layout.getSymbolOffset(*SymA) >> 1)
+                      : C;
+  }
+  else
+  {
+      FixedValue = !RelocateWithSymbol && SymA && !SymA->isUndefined()
+                      ? C + Layout.getSymbolOffset(*SymA)
+                      : C;
+  }
   if (hasRelocationAddend()) {
     Addend = FixedValue;
     FixedValue = 0;

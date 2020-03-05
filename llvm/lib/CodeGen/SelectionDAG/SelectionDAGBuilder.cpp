@@ -3864,11 +3864,13 @@ void SelectionDAGBuilder::visitExtractValue(const User &I) {
 }
 
 void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
+  dbgs() << "visitGetElementPtr\n";
   Value *Op0 = I.getOperand(0);
   // Note that the pointer operand may be a vector of pointers. Take the scalar
   // element which holds a pointer.
   unsigned AS = Op0->getType()->getScalarType()->getPointerAddressSpace();
   SDValue N = getValue(Op0);
+  N.dump();
   SDLoc dl = getCurSDLoc();
   auto &TLI = DAG.getTargetLoweringInfo();
   MVT PtrTy = TLI.getPointerTy(DAG.getDataLayout(), AS);
@@ -3898,6 +3900,7 @@ void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
         {
             assert((Offset & 1) == 0 && "Field offset is not word-aligned!");
             Offset >>= 1;
+            dbgs() << "Offset >>= 1;\n";
         }
 
         // In an inbounds GEP with an offset that is nonnegative even when
@@ -3924,6 +3927,14 @@ void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
         if (CI->isZero())
           continue;
         APInt Offs = ElementSize * CI->getValue().sextOrTrunc(IdxSize);
+        if(TM.getTargetTriple().getArch() == Triple::teak)
+        {
+            assert((Offs & 1) == 0 && "Offs is not word-aligned!");
+            dbgs() << "Offs = Offs.ashr(1);\n";
+            dbgs() << Offs << "\n";
+            Offs = Offs.ashr(1);
+            dbgs() << Offs << "\n";
+        }
         LLVMContext &Context = *DAG.getContext();
         SDValue OffsVal = VectorWidth ?
           DAG.getConstant(Offs, dl, EVT::getVectorVT(Context, IdxTy, VectorWidth)) :
@@ -3998,6 +4009,8 @@ void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
 
   if (PtrMemTy != PtrTy && !cast<GEPOperator>(I).isInBounds())
     N = DAG.getPtrExtendInReg(N, dl, PtrMemTy);
+
+  DAG.dump();
 
   setValue(&I, N);
 }

@@ -99,6 +99,8 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 	setOperationAction(ISD::OR, MVT::i16, Custom);
 	setOperationAction(ISD::SUB, MVT::i16, Custom);
 	setOperationAction(ISD::SHL, MVT::i16, Custom);
+	setOperationAction(ISD::SRL, MVT::i16, Custom);
+	setOperationAction(ISD::SRA, MVT::i16, Custom);
 
 	setStackPointerRegisterToSaveRestore(Teak::SP);
 
@@ -342,11 +344,14 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
   			return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);//NewRes);
 		}
 		case ISD::SHL:
+		case ISD::SRL:
+		case ISD::SRA:
 		{
+			DAG.dump();
 			const SDNode *N = Op.getNode();
 			SDLoc dl(N);
 			assert(N->getValueType(0) == MVT::i16 && "Unexpected custom legalisation");
-			SDValue NewOp0 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, N->getOperand(0));
+			SDValue NewOp0 = DAG.getNode(Op.getOpcode() == ISD::SRA ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND, dl, MVT::i40, N->getOperand(0));
 			SDValue NewWOp = DAG.getNode(N->getOpcode(), dl, MVT::i40, NewOp0, N->getOperand(1));
 			//SDValue NewRes = DAG.getNode(ISD::SIGN_EXTEND_INREG, dl, MVT::i40, NewWOp, DAG.getValueType(MVT::i16));
   			return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);//NewRes);
