@@ -107,11 +107,13 @@ unsigned TeakRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC, Ma
         case Teak::GRRegsRegClassID:
             return 5;
         case Teak::ABRegsRegClassID:
-            return 3;
+            return 4;
         case Teak::ALRegsRegClassID:
-            return 1;
+            return 2;
         case Teak::ABLRegsRegClassID:
-            return 3;
+            return 4;
+        case Teak::RegNoBRegs16_nohRegClassID:
+            return 9;
     }
 }
 
@@ -238,13 +240,35 @@ void TeakRegisterInfo::resolveFrameIndex(MachineInstr &MI, unsigned BaseReg, int
     ImmOp.setImm(Offset);
 }
 
-bool TeakRegisterInfo::shouldCoalesce(MachineInstr *MI,
-                                     const TargetRegisterClass *SrcRC,
-                                     unsigned SubReg,
-                                     const TargetRegisterClass *DstRC,
-                                     unsigned DstSubReg,
-                                     const TargetRegisterClass *NewRC,
-                                     LiveIntervals &LIS) const {
-  return false;
-//   return TargetRegisterInfo::shouldCoalesce(MI, SrcRC, SubReg, DstRC, DstSubReg, NewRC, LIS);
+bool TeakRegisterInfo::shouldCoalesce(MachineInstr *MI, const TargetRegisterClass *SrcRC, unsigned SubReg,
+    const TargetRegisterClass *DstRC, unsigned DstSubReg, const TargetRegisterClass *NewRC, LiveIntervals &LIS) const
+{
+    dbgs() << "shouldCoalesce\n";
+    MI->dump();
+    dbgs() << "SrcRC: " << SrcRC->getID() << "\n";
+    dbgs() << "SubReg: " << SubReg << "\n";
+    dbgs() << "DstRC: " << DstRC->getID() << "\n";
+    dbgs() << "DstSubReg: " << DstSubReg << "\n";
+    dbgs() << "NewRC: " << NewRC->getID() << "\n";
+
+    if(DstSubReg == Teak::sub_16bit)
+        return true;
+    //if(SrcRC->hasSubClassEq(&Teak::GRRegsRegClass) && DstRC->hasSubClassEq(&Teak::GRRegsRegClass) && NewRC->hasSubClassEq(&Teak::GRRegsRegClass))
+    //    return true;
+    if(SrcRC->hasSuperClassEq(&Teak::ABLRegsRegClass) && DstRC->hasSuperClassEq(&Teak::ABRegsRegClass) && NewRC->hasSuperClassEq(&Teak::ABRegsRegClass))
+        return true;
+
+    if(SrcRC->hasSuperClassEq(&Teak::ABRegsRegClass) && DstRC->hasSuperClassEq(&Teak::ABRegsRegClass) && NewRC->hasSuperClassEq(&Teak::ABRegsRegClass))
+        return true;
+    //return true;//false;
+    if(SrcRC->hasSuperClassEq(&Teak::ARegsRegClass) && DstRC->hasSuperClassEq(&Teak::ARegsRegClass) && NewRC->hasSuperClassEq(&Teak::ARegsRegClass))
+        return true;
+    if(SrcRC->hasSuperClassEq(&Teak::ALRegsRegClass) && DstRC->hasSuperClassEq(&Teak::ALRegsRegClass) && NewRC->hasSuperClassEq(&Teak::ALRegsRegClass))
+        return true;
+
+    if (DstRC->hasSuperClassEq(&Teak::ALRegsRegClass) || NewRC->hasSuperClassEq(&Teak::ALRegsRegClass) ||
+        DstRC->hasSuperClassEq(&Teak::ARegsRegClass) || NewRC->hasSuperClassEq(&Teak::ARegsRegClass))
+        return false;
+
+    return true;
 }

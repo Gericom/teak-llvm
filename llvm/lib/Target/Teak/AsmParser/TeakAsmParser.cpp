@@ -39,6 +39,7 @@ namespace
         bool ParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLoc) override;
 
         bool ParseOperand(OperandVector &Operands, StringRef Mnemonic);
+        bool ParseConditionOp(const std::string ccString, TeakCC::CondCodes& condition);
         bool ParseConditionOp(TeakCC::CondCodes& condition);
         bool ParseRegOp(OperandVector& operands);
 
@@ -94,6 +95,7 @@ namespace
         SMLoc StartLoc, EndLoc;
         std::string Tok;
         bool IsInt;
+        bool HasIntSign;
         bool HasIntType;
         unsigned IntVal;
         union
@@ -211,11 +213,12 @@ namespace
             addExpr(Inst, getImm());
         }
 
-        static std::unique_ptr<TeakOperand> createToken(std::string Str, SMLoc S, bool isInt = false, bool hasIntType = false, unsigned intVal = 0)
+        static std::unique_ptr<TeakOperand> createToken(std::string Str, SMLoc S, bool isInt = false, bool hasIntSign = false, bool hasIntType = false, unsigned intVal = 0)
         {
             auto Op = std::make_unique<TeakOperand>(Token);
             Op->Tok = Str;
             Op->IsInt = isInt;
+            Op->HasIntSign = hasIntSign;
             Op->HasIntType = hasIntType;
             Op->IntVal = intVal;
             Op->StartLoc = S;
@@ -309,16 +312,21 @@ bool TeakAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode, Opera
     }
     else if(((TeakOperand&)*Operands[0]).getToken() == "br")
     {
+        std::string cc = ((TeakOperand&)*Operands[2]).getToken();
+        TeakCC::CondCodes condition;
+        if(!ParseConditionOp(cc, condition))
+            return Error(IDLoc, "Invalid condition code!");
         //todo: support condition code!
-        Inst.setOpcode(Teak::BR_imm18);
+        Inst.setOpcode(Teak::BRCond_imm18);
         Inst.addOperand(MCOperand::createExpr(MCSymbolRefExpr::create(((TeakOperand&)*Operands[1]).getToken(), MCSymbolRefExpr::VK_None, getContext())));
+        Inst.addOperand(MCOperand::createImm((int)condition));
         Out.EmitInstruction(Inst, getSTI());
         return false;
     }
     for (auto &op : Operands)
     {
         TeakOperand& teakOp = static_cast<TeakOperand&>(*op);
-        if(teakOp.IsInt && !teakOp.HasIntType)
+        if(teakOp.IsInt && !teakOp.HasIntSign && !teakOp.HasIntType)
            tokens.push_back("0x0000");
         else
             tokens.push_back(teakOp.getToken());
@@ -348,7 +356,7 @@ bool TeakAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode, Opera
         for (auto &op : Operands)
         {
             TeakOperand& teakOp = static_cast<TeakOperand&>(*op);
-            if(teakOp.IsInt && !teakOp.HasIntType)
+            if(teakOp.IsInt && !teakOp.HasIntSign && !teakOp.HasIntType)
             {
                 val = teakOp.IntVal;
                 break;
@@ -384,6 +392,19 @@ bool TeakAsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLo
 bool TeakAsmParser::ParseOperand(OperandVector &Operands, StringRef Mnemonic)
 {
 
+    return false;
+}
+
+bool TeakAsmParser::ParseConditionOp(const std::string ccString, TeakCC::CondCodes& condition)
+{
+    for(int i = TeakCC::True; i <= TeakCC::Iu1; i++)
+    {
+        if(ccString == TeakCCondCodeToString((TeakCC::CondCodes)i))
+        {
+            condition = (TeakCC::CondCodes)i;
+            return true;
+        }
+    }
     return false;
 }
 
@@ -457,18 +478,34 @@ bool TeakAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
         }
         StringRef Name2 = Tok.getString();        
         //dbgs() << Name2 << "\n";
-        if(Tok.is(AsmToken::Integer))
+        if(Tok.is(AsmToken::Plus) || Tok.is(AsmToken::Minus) || Tok.is(AsmToken::Integer))
         {
-            unsigned val = Tok.getIntVal();
+            std::string op;
+            bool hasSign = false;
+            int mul = 1;
+            if(Tok.is(AsmToken::Plus) || Tok.is(AsmToken::Minus))
+            {
+                hasSign = true;
+                op = Tok.is(AsmToken::Plus) ? "+" : "-";
+                if(Tok.is(AsmToken::Minus))
+                    mul = -1;
+                getParser().Lex();
+            }
+            else
+                op = "";
+            const AsmToken& Tok3 = getParser().getTok();
+            if(!Tok3.is(AsmToken::Integer))
+                return Error(loc, "Expected integer!");
+            unsigned val = Tok3.getIntVal();
             getParser().Lex();
             const AsmToken &Tok2 = getParser().getTok();
             if(Tok2.getString().equals("u8") || Tok2.getString().equals("s8"))
             {
-                Operands.push_back(TeakOperand::createToken(formatString("0x%04x", val) + Tok2.getString().str(), loc, true, true, val));
+                Operands.push_back(TeakOperand::createToken(op + formatString("0x%04x", val) + Tok2.getString().str(), loc, true, hasSign, true, val * mul));
                 getParser().Lex();
             }
             else
-                Operands.push_back(TeakOperand::createToken(formatString("0x%04x", val), loc, true, false, val));
+                Operands.push_back(TeakOperand::createToken(op + formatString("0x%04x", val), loc, true, hasSign, false, val * mul));
         }
         else
         {        

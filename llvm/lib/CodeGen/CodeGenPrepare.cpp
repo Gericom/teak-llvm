@@ -4272,7 +4272,7 @@ bool AddressingModeMatcher::matchOperationAddr(User *AddrInst, unsigned Opcode,
         if (ConstantInt *CI = dyn_cast<ConstantInt>(AddrInst->getOperand(i))) {
           const APInt &CVal = CI->getValue();
           if (CVal.getMinSignedBits() <= 64) {
-            ConstantOffset += CVal.getSExtValue() * TypeSize;
+            ConstantOffset += (CVal.getSExtValue() * TypeSize) >> 1;
             continue;
           }
         }
@@ -4283,7 +4283,7 @@ bool AddressingModeMatcher::matchOperationAddr(User *AddrInst, unsigned Opcode,
 
           // Remember the variable index.
           VariableOperand = i;
-          VariableScale = TypeSize;
+          VariableScale = TypeSize >> 1;
         }
       }
     }

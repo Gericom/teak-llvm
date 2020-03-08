@@ -3723,7 +3723,7 @@ const SCEV *ScalarEvolution::getSizeOfExpr(Type *IntTy, Type *AllocTy) {
   // We can bypass creating a target-independent
   // constant expression and then folding it back into a ConstantInt.
   // This is just a compile-time optimization.
-  return getConstant(IntTy, getDataLayout().getTypeAllocSize(AllocTy));
+  return getConstant(IntTy, getDataLayout().getTypeAllocSize(AllocTy) >> 1);
 }
 
 const SCEV *ScalarEvolution::getOffsetOfExpr(Type *IntTy,
@@ -3733,7 +3733,7 @@ const SCEV *ScalarEvolution::getOffsetOfExpr(Type *IntTy,
   // constant expression and then folding it back into a ConstantInt.
   // This is just a compile-time optimization.
   return getConstant(
-      IntTy, getDataLayout().getStructLayout(STy)->getElementOffset(FieldNo));
+      IntTy, getDataLayout().getStructLayout(STy)->getElementOffset(FieldNo) >> 1);
 }
 
 const SCEV *ScalarEvolution::getUnknown(Value *V) {

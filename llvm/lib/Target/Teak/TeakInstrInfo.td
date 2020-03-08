@@ -62,6 +62,20 @@ def imm0_262143 : Operand<i32>, ImmLeaf<i32, [{
 // def : Pat<(sext_inreg i16:$src, i8),
 //           (SEXT (i8 (EXTRACT_SUBREG i16:$src, sub_lo)))>;
 
+let Defs = [ICC], isCommutable = 1 in
+def ADDV_imm16_memrn : InstTeakImm16<
+    (outs ),
+    (ins immNeg32768_32767_16:$val, GRRegs:$addr),
+    "addv $val, [$addr]",
+    [(store (add (load GRRegs:$addr), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+
+let Defs = [ICC], Constraints = "$dst = $a", isCommutable = 1 in
+def ADDV_imm16_RegNoBRegs16 : InstTeakImm16<
+    (outs RegNoBRegs16:$dst),
+    (ins immNeg32768_32767_16:$val, RegNoBRegs16:$a),
+    "addv $val, $a",
+    [(set RegNoBRegs16:$dst, (add RegNoBRegs16:$a, immNeg32768_32767_16:$val))]>;
+
 let Defs = [ICC], Constraints = "$dst = $a", isCommutable = 1 in
 def ADD_imm16_a : InstTeakImm16<
     (outs ARegs:$dst),
@@ -82,20 +96,6 @@ def ADD_ab_ab : InstTeak<
     (ins ABRegs:$b, ABRegs:$a),
     "add $b, $a",
     [(set ABRegs:$dst, (add ABRegs:$a, ABRegs:$b))]>;
-
-let Defs = [ICC], Constraints = "$dst = $a", isCommutable = 1 in
-def ADDV_imm16_RegNoBRegs16 : InstTeakImm16<
-    (outs RegNoBRegs16:$dst),
-    (ins immNeg32768_32767_16:$val, RegNoBRegs16:$a),
-    "addv $val, $a",
-    [(set RegNoBRegs16:$dst, (add RegNoBRegs16:$a, immNeg32768_32767_16:$val))]>;
-
-let Defs = [ICC], isCommutable = 1 in
-def ADDV_imm16_memrn : InstTeakImm16<
-    (outs ),
-    (ins immNeg32768_32767_16:$val, GRRegs:$addr),
-    "addv $val, [$addr]",
-    [(store (add (load GRRegs:$addr), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
 
 let Defs = [ICC], Constraints = "$dst = $a" in
 def AND_imm16_a : InstTeakImm16<
@@ -230,6 +230,13 @@ def MOV_regnobp016_abl : InstTeak<
     "mov $src, ${dst}l",
     [(set ABRegs:$dst, (zext RegNoBRegs16:$src))]>;
 
+let Defs = [ICC], Constraints = "$dst = $a" in
+def NOT_a : InstTeak<
+    (outs ARegs:$dst),
+    (ins ARegs:$a),
+    "not $a",
+    [(set ARegs:$dst, (not ARegs:$a))]>;
+
 let Defs = [ICC] in
 def SHFI_ab_ab : InstTeak<
     (outs ABRegs:$dst),
@@ -271,6 +278,27 @@ def SWAP_ab : InstTeak<
     (ins ARegs:$asrc, BRegs:$bsrc),
     "swap ($asrc, $bsrc)",
     []>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def XOR_imm16_a : InstTeakImm16<
+    (outs ARegs:$dst),
+    (ins imm0_65535:$val, ARegs:$a),
+    "xor $val, $a",
+    [(set ARegs:$dst, (xor ARegs:$a, imm0_65535:$val))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def XOR_regnobp016_a : InstTeakImm16<
+    (outs ARegs:$dst),
+    (ins RegNoBRegs16:$b, ARegs:$a),
+    "xor $b, $a",
+    [(set ARegs:$dst, (xor ARegs:$a, (zext RegNoBRegs16:$b)))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def XOR_a_a : InstTeakImm16<
+    (outs ARegs:$dst),
+    (ins ARegs:$b, ARegs:$a),
+    "xor $b, $a",
+    [(set ARegs:$dst, (xor ARegs:$a, ARegs:$b))]>;
 
 // def PseudoSRA : InstTeak<(outs ABRegs:$dst), (ins ABRegs:$src, Operand<i32>:$shift), "",
 //                      [(set i40:$dst, ( imm:$src))]> {

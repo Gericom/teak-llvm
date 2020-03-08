@@ -443,19 +443,29 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
       case Teak::LOAD_REG_FROM_STACK_PSEUDO_16:
       {
           dbgs() << "expandPostRAPseudo for LOAD_REG_FROM_STACK_PSEUDO_16\n";
+          unsigned dstReg = MI.getOperand(0).getReg();
           signed short frameOffset = (signed short)MI.getOperand(2).getImm();// / 2;
           if(keepFlags)
               BuildMI(MBB, MI, DL, get(Teak::PUSH_ararpsttmod), Teak::STT0);
-          if(frameOffset)
-              BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
-                .addImm(frameOffset)
+          if(dstReg == Teak::A0L || dstReg == Teak::A1L)
+          {
+                BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg == Teak::A0L ? Teak::A0 : Teak::A1)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset);
+          }
+          else
+          {
+              if(frameOffset)
+                  BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
+                    .addImm(frameOffset)
+                    .addReg(MI.getOperand(1).getReg());
+              BuildMI(MBB, MI, DL, get(Teak::MOV_memrn_regnob16), dstReg)
                 .addReg(MI.getOperand(1).getReg());
-          BuildMI(MBB, MI, DL, get(Teak::MOV_memrn_regnob16), MI.getOperand(0).getReg())
-            .addReg(MI.getOperand(1).getReg());
-          if(frameOffset)
-              BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
-                .addImm(-frameOffset)
-                .addReg(MI.getOperand(1).getReg());
+              if(frameOffset)
+                  BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
+                    .addImm(-frameOffset)
+                    .addReg(MI.getOperand(1).getReg());
+          }
           if(keepFlags)
               BuildMI(MBB, MI, DL, get(Teak::POP_ararpsttmod), Teak::STT0);
           MBB.erase(MI);
@@ -465,21 +475,31 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
       case Teak::LOAD_REG_FROM_STACK_PSEUDO_16_SEXT40:
       {
           dbgs() << "expandPostRAPseudo for LOAD_REG_FROM_STACK_PSEUDO_16_SEXT40\n";
+          unsigned dstReg = MI.getOperand(0).getReg();
           signed short frameOffset = (signed short)MI.getOperand(2).getImm();// / 2;
           if(keepFlags)
               BuildMI(MBB, MI, DL, get(Teak::PUSH_ararpsttmod), Teak::STT0);
-          if(frameOffset)
-              BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
-                .addImm(frameOffset)
+          if(dstReg == Teak::A0 || dstReg == Teak::A1)
+          {
+                BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset);
+          }
+          else
+          {
+              if(frameOffset)
+                  BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
+                    .addImm(frameOffset)
+                    .addReg(MI.getOperand(1).getReg());
+              BuildMI(MBB, MI, DL, get(Teak::MOV_memrn_ab), dstReg)
                 .addReg(MI.getOperand(1).getReg());
-          BuildMI(MBB, MI, DL, get(Teak::MOV_memrn_ab), MI.getOperand(0).getReg())
-            .addReg(MI.getOperand(1).getReg());
-          if(frameOffset)
-              BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
-                .addImm(-frameOffset)
-                .addReg(MI.getOperand(1).getReg());
-          if(keepFlags)
-              BuildMI(MBB, MI, DL, get(Teak::POP_ararpsttmod), Teak::STT0);
+              if(frameOffset)
+                  BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
+                    .addImm(-frameOffset)
+                    .addReg(MI.getOperand(1).getReg());
+              if(keepFlags)
+                  BuildMI(MBB, MI, DL, get(Teak::POP_ararpsttmod), Teak::STT0);
+          }
           MBB.erase(MI);
           return true;
       }

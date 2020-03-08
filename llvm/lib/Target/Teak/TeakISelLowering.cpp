@@ -68,8 +68,10 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 	setBooleanContents(ZeroOrOneBooleanContent);
   	setBooleanVectorContents(ZeroOrOneBooleanContent);
 	// Set up the register classes.
-	addRegisterClass(MVT::i16, &Teak::GRRegsRegClass);
+	//addRegisterClass(MVT::i16, &Teak::GRRegsRegClass);
 	addRegisterClass(MVT::i16, &Teak::ABLRegsRegClass);
+	//addRegisterClass(MVT::i16, &Teak::ALRegsRegClass);
+	addRegisterClass(MVT::i16, &Teak::RegNoBRegs16_nohRegClass);
 	//addRegisterClass(MVT::i16, &Teak::Y0RegsRegClass);
 	//addRegisterClass(MVT::i32, &Teak::P0RegsRegClass);
 	//addRegisterClass(MVT::i16, &Teak::ABHRegsRegClass);
@@ -104,7 +106,7 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 
 	setStackPointerRegisterToSaveRestore(Teak::SP);
 
-	setSchedulingPreference(Sched::RegPressure);
+	setSchedulingPreference(Sched::Hybrid);
 
 	// Nodes that require custom lowering
 	setOperationAction(ISD::GlobalAddress, MVT::i16, Custom);

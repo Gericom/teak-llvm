@@ -469,6 +469,9 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::MPY_y0_regnob16:
             EmitConstant(0x8040 | encodeRegisterOp(MI.getOperand(2).getReg()), 2, OS);
             break;
+        case Teak::NOT_a:
+            EmitConstant(0x6780 | (encodeAxOp(MI.getOperand(0).getReg()) << 12), 2, OS);
+            break;
         case Teak::OR_ab_ab_a:
         {
             unsigned dstReg = MI.getOperand(0).getReg();
@@ -559,6 +562,14 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::RawAsmOpExtended:
             EmitConstant(MI.getOperand(0).getImm(), 2, OS);
             EmitConstant(MI.getOperand(1).getImm(), 2, OS);
+            break;
+        case Teak::XOR_imm16_a:
+            EmitConstant(0xD4FA | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
+            EmitConstant(MI.getOperand(1).getImm() & 0xFFFF, 2, OS);
+            break;
+        case Teak::XOR_regnobp016_a:
+        case Teak::XOR_a_a:
+            EmitConstant(0x84A0 | (encodeAxOp(MI.getOperand(0).getReg()) << 8) | encodeRegisterP0Op(MI.getOperand(1).getReg()), 2, OS);
             break;
         default:
             dbgs() << "Unsupported opcode " << MI.getOpcode() << "!\n";
