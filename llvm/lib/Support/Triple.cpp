@@ -1242,6 +1242,7 @@ static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
 
   case llvm::Triple::avr:
   case llvm::Triple::msp430:
+  case llvm::Triple::teak:
     return 16;
 
   case llvm::Triple::aarch64_32:
