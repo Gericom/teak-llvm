@@ -363,6 +363,12 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                 llvm_unreachable("Unsupported registers");
             break;
         }
+        case Teak::CMP_regnobp016_a:
+            EmitConstant(0x8CA0 | encodeRegisterP0Op(MI.getOperand(0).getReg()) | (encodeAxOp(MI.getOperand(1).getReg()) << 8), 2, OS);
+            break;
+        case Teak::CMPU_regnob016_a:
+            EmitConstant(0x9EA0 | encodeRegisterOp(MI.getOperand(0).getReg()) | (encodeAxOp(MI.getOperand(1).getReg()) << 8), 2, OS);
+            break;
         case Teak::CMP_imm16_a:
         {
             EmitConstant(0x8CC0 | (encodeAxOp(MI.getOperand(1).getReg()) << 8), 2, OS);

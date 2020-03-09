@@ -238,10 +238,10 @@ static TeakCC::CondCodes IntCondCCodeToICC(ISD::CondCode CC)
 		case ISD::SETGT:  return TeakCC::Gt;
 		case ISD::SETLE:  return TeakCC::Le;
 		case ISD::SETGE:  return TeakCC::Ge;
-		//case ISD::SETULT: return TeakCC::ICC_CS;
-		//case ISD::SETULE: return TeakCC::ICC_LEU;
-		//case ISD::SETUGT: return TeakCC::ICC_GU;
-		case ISD::SETUGE: return TeakCC::C;
+		case ISD::SETULT: return TeakCC::Lt;
+		case ISD::SETULE: return TeakCC::Le;
+		case ISD::SETUGT: return TeakCC::Gt;
+		case ISD::SETUGE: return TeakCC::Ge;
 	}
 }
 
@@ -259,11 +259,15 @@ SDValue TeakTargetLowering::LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const
 	// an CMP[IF]CC/SELECT_[IF]CC pair, find the original compared values.
 	lookThroughSetCC(LHS, RHS, CC, SPCC);
 
+	bool unsgn = false;
+	if(CC == ISD::SETULT || CC == ISD::SETULE || CC == ISD::SETUGT || CC == ISD::SETUGE)
+		unsgn = true;
+
 	if(LHS.getValueType() == MVT::i16 || LHS.getValueType() == MVT::i32)
-		LHS = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, LHS);
+		LHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, LHS);
 
 	if(RHS.getValueType() == MVT::i16 || RHS.getValueType() == MVT::i32)
-		RHS = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, RHS);
+		RHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, RHS);
 
 	SDValue CompareFlag;
 	if (LHS.getValueType().isInteger())
@@ -293,11 +297,15 @@ SDValue TeakTargetLowering::LowerBR_CC(SDValue Op, SelectionDAG &DAG) const
 	// an CMP[IF]CC/SELECT_[IF]CC pair, find the original compared values.
 	lookThroughSetCC(LHS, RHS, CC, SPCC);
 
+	bool unsgn = false;
+	if(CC == ISD::SETULT || CC == ISD::SETULE || CC == ISD::SETUGT || CC == ISD::SETUGE)
+		unsgn = true;
+
 	if(LHS.getValueType() == MVT::i16 || LHS.getValueType() == MVT::i32)
-		LHS = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, LHS);
+		LHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, LHS);
 
 	if(RHS.getValueType() == MVT::i16 || RHS.getValueType() == MVT::i32)
-		RHS = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, RHS);
+		RHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, RHS);
 
 	// Get the condition flag.
 	SDValue CompareFlag;

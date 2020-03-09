@@ -496,12 +496,6 @@ let Defs = [SP], Uses = [SP] in
 
 let isCompare = 1, Defs = [ICC] in
 {
-    def CMP_ab_ab : InstTeak<
-        (outs),
-        (ins ABRegs:$b, ABRegs:$a),
-        "cmp $b, $a",
-        [(TeakCmpICC ABRegs:$a, ABRegs:$b)]>;
-
     def CMP_imm16_a : InstTeakImm16<
         (outs),
         (ins immNeg32768_32767:$val, ARegs:$a),
@@ -513,6 +507,24 @@ let isCompare = 1, Defs = [ICC] in
         (ins immNeg32768_32767_16:$val, RegNoBRegs16:$a),
         "cmpv $val, $a",
         [(TeakCmpICC RegNoBRegs16:$a, immNeg32768_32767_16:$val)]>;
+
+    def CMP_regnobp016_a : InstTeak<
+        (outs),
+        (ins RegNoBRegs16:$b, ARegs:$a),
+        "cmp $b, $a",
+        [(TeakCmpICC ARegs:$a, (sext RegNoBRegs16:$b))]>;
+
+    def CMPU_regnob016_a : InstTeak<
+        (outs),
+        (ins RegNoBRegs16:$b, ARegs:$a),
+        "cmpu $b, $a",
+        [(TeakCmpICC ARegs:$a, (zext RegNoBRegs16:$b))]>;
+
+    def CMP_ab_ab : InstTeak<
+        (outs),
+        (ins ABRegs:$b, ABRegs:$a),
+        "cmp $b, $a",
+        [(TeakCmpICC ABRegs:$a, ABRegs:$b)]>;
 }
 
 let Uses = [ICC], usesCustomInserter = 1 in {
