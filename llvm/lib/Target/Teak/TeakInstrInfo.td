@@ -15,11 +15,18 @@ class ImmAsmOperand<int Low, int High> : AsmOperandClass {
   let DiagnosticString = "operand must be an immediate in the range [" # Low # "," # High # "]";
 }
 
-def Imm0_63AsmOperand: ImmAsmOperand<0,63> { let Name = "Imm0_63"; }
-def imm0_63 : Operand<i40>, ImmLeaf<i40, [{
-  return Imm >= 0 && Imm < 63;
+def Imm0_31AsmOperand: ImmAsmOperand<0,31> { let Name = "Imm0_31"; }
+def imm0_31 : Operand<i40>, ImmLeaf<i40, [{
+  return Imm >= 0 && Imm <= 31;
 }]> {
-  let ParserMatchClass = Imm0_63AsmOperand;
+  let ParserMatchClass = Imm0_31AsmOperand;
+}
+
+def Imm6sAsmOperand: ImmAsmOperand<-32,31> { let Name = "Imm6s"; }
+def Imm6s : Operand<i16>, ImmLeaf<i16, [{
+  return Imm >= -32 && Imm <= 31;
+}]> {
+  let ParserMatchClass = Imm6sAsmOperand;
 }
 
 def Imm0_65535AsmOperand: ImmAsmOperand<0,65535> { let Name = "Imm0_65535"; }
@@ -124,6 +131,48 @@ def OR_imm16_a : InstTeakImm16<
     (ins imm0_65535:$val, ARegs:$a),
     "or $val, $a",
     [(set ARegs:$dst, (or ARegs:$a, imm0_65535:$val))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def RST_imm16_regnob16 : InstTeakImm16<
+    (outs RegNoBRegs16:$dst),
+    (ins imm0_65535_16:$val, RegNoBRegs16:$a),
+    "rst $val, $a",
+    [(set RegNoBRegs16:$dst, (and RegNoBRegs16:$a, (not imm0_65535_16:$val)))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def RST_imm16_abl : InstTeakImm16<
+    (outs ABRegs:$dst),
+    (ins imm0_65535:$val, ABRegs:$a),
+    "rst $val, ${a}l",
+    [(set ABRegs:$dst, (and ABRegs:$a, (not imm0_65535:$val)))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def RST_imm16_sttmod : InstTeakImm16<
+    (outs SttModRegs:$dst),
+    (ins imm0_65535_16:$val, SttModRegs:$a),
+    "rst $val, $a",
+    []>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def SET_imm16_regnob16 : InstTeakImm16<
+    (outs RegNoBRegs16:$dst),
+    (ins imm0_65535_16:$val, RegNoBRegs16:$a),
+    "set $val, $a",
+    [(set RegNoBRegs16:$dst, (or RegNoBRegs16:$a, imm0_65535_16:$val))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def SET_imm16_abl : InstTeakImm16<
+    (outs ABRegs:$dst),
+    (ins imm0_65535:$val, ABRegs:$a),
+    "set $val, ${a}l",
+    [(set ABRegs:$dst, (or ABRegs:$a, imm0_65535:$val))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
+def SET_imm16_sttmod : InstTeakImm16<
+    (outs SttModRegs:$dst),
+    (ins imm0_65535_16:$val, SttModRegs:$a),
+    "set $val, $a",
+    []>;
 
 let Defs = [ICC], Constraints = "$dst = $a" in
 def OR_r7offset16_a : InstTeakImm16<
@@ -231,6 +280,13 @@ def MOV_regnobp016_abl : InstTeak<
     [(set ABRegs:$dst, (zext RegNoBRegs16:$src))]>;
 
 let Defs = [ICC], Constraints = "$dst = $a" in
+def NEG_a : InstTeak<
+    (outs ARegs:$dst),
+    (ins ARegs:$a),
+    "neg $a",
+    [(set ARegs:$dst, (ineg ARegs:$a))]>;
+
+let Defs = [ICC], Constraints = "$dst = $a" in
 def NOT_a : InstTeak<
     (outs ARegs:$dst),
     (ins ARegs:$a),
@@ -238,25 +294,74 @@ def NOT_a : InstTeak<
     [(set ARegs:$dst, (not ARegs:$a))]>;
 
 let Defs = [ICC] in
-def SHFI_ab_ab : InstTeak<
+def SHFI_arith_ab_ab : InstTeak<
     (outs ABRegs:$dst),
-    (ins ABRegs:$src, imm0_63:$shift),
-    "shfi $src, $dst, -$shift",
-    [(set ABRegs:$dst, (sra ABRegs:$src, imm0_63:$shift))]>;
+    (ins ABRegs:$src, Imm6s:$shift),
+    "shfi $src, $dst, $shift",
+    [(set ABRegs:$dst, (TeakShiftArith ABRegs:$src, Imm6s:$shift))]>;
 
 let Defs = [ICC] in
-def SHFI2_ab_ab : InstTeak<
+def SHFI_logic_ab_ab : TeakPseudoInst<
     (outs ABRegs:$dst),
-    (ins ABRegs:$src, imm0_63:$shift),
-    "shfi $src, $dst, +$shift",
-    [(set ABRegs:$dst, (shl ABRegs:$src, imm0_63:$shift))]>;
+    (ins ABRegs:$src, Imm6s:$shift),
+    "shfi $src, $dst, $shift",
+    [(set ABRegs:$dst, (TeakShiftLogic ABRegs:$src, Imm6s:$shift))]>;
 
 let Defs = [ICC] in
-def SHFI3_ab_ab : InstTeak<
+def SHFC_arith_ab_ab_sv : InstTeak<
     (outs ABRegs:$dst),
-    (ins ABRegs:$src, imm0_63:$shift),
-    "shfi $src, $dst, -$shift",
-    [(set ABRegs:$dst, (srl ABRegs:$src, imm0_63:$shift))]>;
+    (ins ABRegs:$src, SVReg:$shift),
+    "shfc $src, $dst, always",
+    [(set ABRegs:$dst, (TeakShiftArith ABRegs:$src, SVReg:$shift))]>;
+
+let Defs = [ICC] in
+def SHFC_logic_ab_ab_sv : TeakPseudoInst<
+    (outs ABRegs:$dst),
+    (ins ABRegs:$src, SVReg:$shift),
+    "shfc $src, $dst, always",
+    [(set ABRegs:$dst, (TeakShiftLogic ABRegs:$src, SVReg:$shift))]>;
+
+// let Defs = [ICC, SV] in
+// def SRL_PSEUDO_ab_ab_sv : TeakPseudoInst<
+//     (outs ABRegs:$dst),
+//     (ins ABRegs:$src, RegNoBRegs16:$shift),
+//     "SRL_PSEUDO_ab_sv",
+//     [(set ABRegs:$dst, (srl ABRegs:$x, RegNoBRegs16:$y))]>;
+
+// let Defs = [ICC, SV] in
+// def SRA_PSEUDO_ab_ab_sv : TeakPseudoInst<
+//     (outs ABRegs:$dst),
+//     (ins ABRegs:$src, RegNoBRegs16:$shift),
+//     "SRA_PSEUDO_ab_sv",
+//     [(set ABRegs:$dst, (sra ABRegs:$x, RegNoBRegs16:$y))]>;
+
+// let Defs = [ICC, SV] in
+// def SHL_PSEUDO_ab_ab_sv : TeakPseudoInst<
+//     (outs ABRegs:$dst),
+//     (ins ABRegs:$src, RegNoBRegs16:$shift),
+//     "SHL_PSEUDO_ab_sv",
+//     [(set ABRegs:$dst, (shl ABRegs:$x, RegNoBRegs16:$y))]>;
+
+// let Defs = [ICC] in
+// def SHFI_ab_ab : InstTeak<
+//     (outs ABRegs:$dst),
+//     (ins ABRegs:$src, imm0_31:$shift),
+//     "shfi $src, $dst, -$shift",
+//     [(set ABRegs:$dst, (sra ABRegs:$src, imm0_31:$shift))]>;
+
+// let Defs = [ICC] in
+// def SHFI2_ab_ab : InstTeak<
+//     (outs ABRegs:$dst),
+//     (ins ABRegs:$src, imm0_31:$shift),
+//     "shfi $src, $dst, +$shift",
+//     [(set ABRegs:$dst, (shl ABRegs:$src, imm0_31:$shift))]>;
+
+// let Defs = [ICC] in
+// def SHFI3_ab_ab : InstTeak<
+//     (outs ABRegs:$dst),
+//     (ins ABRegs:$src, imm0_31:$shift),
+//     "shfi $src, $dst, -$shift",
+//     [(set ABRegs:$dst, (srl ABRegs:$src, imm0_31:$shift))]>;
 
 let Defs = [ICC] in
 def MPY_y0_regnob16 : InstTeak<
@@ -318,7 +423,7 @@ def HI16 : SDNodeXForm<imm, [{
 }]>;
 
 // Arbitrary immediates.
-def : Pat<(i40 imm:$val), (OR_imm16_a (LO16 imm:$val), (MOV_imm16hi_ab (HI16 imm:$val)))>;
+def : Pat<(i40 imm:$val), (SET_imm16_abl (LO16 imm:$val), (MOV_imm16hi_ab (HI16 imm:$val)))>;
 
 let mayStore = 1 in
 def MOV_al2_memimm16 : InstTeakImm16<

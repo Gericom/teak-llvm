@@ -537,7 +537,7 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
               BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg)
                 .addReg(Teak::R7)
                 .addImm(frameOffset);
-              BuildMI(MBB, MI, DL, get(Teak::SHFI2_ab_ab), dstReg)
+              BuildMI(MBB, MI, DL, get(Teak::SHFI_arith_ab_ab), dstReg)
                 .addReg(dstReg)
                 .addImm(16);
               BuildMI(MBB, MI, DL, get(Teak::OR_r7offset16_a), dstReg)
@@ -552,7 +552,7 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
               BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), Teak::A0)
                 .addReg(Teak::R7)
                 .addImm(frameOffset);
-              BuildMI(MBB, MI, DL, get(Teak::SHFI2_ab_ab), Teak::A0)
+              BuildMI(MBB, MI, DL, get(Teak::SHFI_arith_ab_ab), Teak::A0)
                 .addReg(Teak::A0)
                 .addImm(16);
               BuildMI(MBB, MI, DL, get(Teak::OR_r7offset16_a), Teak::A0)
@@ -580,6 +580,54 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
           MBB.erase(MI);
           return true;
       }
+      // case Teak::SHL_PSEUDO_ab_ab_sv:
+      // {
+      //     BuildMI(MBB, MI, DL, get(Teak::MOV_regnobp016_regnob16), Teak::SV)
+      //         .addReg(MI.getOperand(2).getReg());
+      //     BuildMI(MBB, MI, DL, get(Teak::SHFC_ab_ab_sv), MI.getOperand(0).getReg())
+      //         .addReg(MI.getOperand(1).getReg());
+      //         .addReg(MI.getOperand(2).getReg());
+      //     MBB.erase(MI);
+      //     return true;
+      // }
+      case Teak::SHFI_logic_ab_ab:
+      {
+          BuildMI(MBB, MI, DL, get(Teak::SET_imm16_sttmod), Teak::MOD0)
+               .addImm(0x80)
+               .addReg(Teak::MOD0);
+          BuildMI(MBB, MI, DL, get(Teak::SHFI_arith_ab_ab), MI.getOperand(0).getReg())
+               .add(MI.getOperand(1))
+               .add(MI.getOperand(2));
+          BuildMI(MBB, MI, DL, get(Teak::RST_imm16_sttmod), Teak::MOD0)
+               .addImm(0x80)
+               .addReg(Teak::MOD0);
+          MBB.erase(MI);
+          return true;
+      }
+      case Teak::SHFC_logic_ab_ab_sv:
+      {
+          BuildMI(MBB, MI, DL, get(Teak::SET_imm16_sttmod), Teak::MOD0)
+               .addImm(0x80)
+               .addReg(Teak::MOD0);
+          BuildMI(MBB, MI, DL, get(Teak::SHFC_arith_ab_ab_sv), MI.getOperand(0).getReg())
+               .add(MI.getOperand(1))
+               .add(MI.getOperand(2));
+          BuildMI(MBB, MI, DL, get(Teak::RST_imm16_sttmod), Teak::MOD0)
+               .addImm(0x80)
+               .addReg(Teak::MOD0);
+          MBB.erase(MI);
+          return true;
+      }
+      // case Teak::SRA_PSEUDO_ab_ab_sv:
+      // {
+      //     BuildMI(MBB, MI, DL, get(Teak::MOV_regnobp016_regnob16), Teak::SV)
+      //         .addReg(MI.getOperand(2).getReg());
+      //     BuildMI(MBB, MI, DL, get(Teak::SHFC_ab_ab_sv), MI.getOperand(0).getReg())
+      //         .addReg(MI.getOperand(1).getReg());
+      //         .addReg(MI.getOperand(2).getReg());
+      //     MBB.erase(MI);
+      //     return true;
+      // }
   }
   // switch (MI->getOpcode())
   // {

@@ -38,7 +38,9 @@ enum NodeType {
   CMPICC,
   BRICC,
   SELECT_ICC,
-  WRAPPER
+  WRAPPER,
+  SHIFT_ARITH,
+  SHIFT_LOGIC
 };
 }
 

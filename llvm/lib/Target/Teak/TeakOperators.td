@@ -66,6 +66,10 @@ def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], []>;
 def SDT_TeakWrapper : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisPtrTy<0>]>;
 def TeakWrapper : SDNode<"TeakISD::WRAPPER", SDT_TeakWrapper>; 
 
+def SDT_TeakShift : SDTypeProfile<1, 2, [SDTCisVT<0, i40>, SDTCisVT<1, i40>, SDTCisInt<2>]>;
+def TeakShiftArith : SDNode<"TeakISD::SHIFT_ARITH", SDT_TeakShift>; 
+def TeakShiftLogic : SDNode<"TeakISD::SHIFT_LOGIC", SDT_TeakShift>; 
+
 // //===----------------------------------------------------------------------===//
 // // Operand Definitions.
 // //===----------------------------------------------------------------------===//

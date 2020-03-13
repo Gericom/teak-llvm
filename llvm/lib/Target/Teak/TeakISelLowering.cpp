@@ -98,11 +98,15 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 
 	setOperationAction(ISD::ADD, MVT::i16, Custom);
 	setOperationAction(ISD::AND, MVT::i16, Custom);
+	setOperationAction(ISD::XOR, MVT::i16, Custom);
 	setOperationAction(ISD::OR, MVT::i16, Custom);
 	setOperationAction(ISD::SUB, MVT::i16, Custom);
 	setOperationAction(ISD::SHL, MVT::i16, Custom);
+	setOperationAction(ISD::SHL, MVT::i40, Custom);
 	setOperationAction(ISD::SRL, MVT::i16, Custom);
+	setOperationAction(ISD::SRL, MVT::i40, Custom);
 	setOperationAction(ISD::SRA, MVT::i16, Custom);
+	setOperationAction(ISD::SRA, MVT::i40, Custom);
 
 	setStackPointerRegisterToSaveRestore(Teak::SP);
 
@@ -343,6 +347,7 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
 		case ISD::AND:
 		case ISD::OR:
 		case ISD::SUB:
+		case ISD::XOR:
 		{
 			const SDNode *N = Op.getNode();
 			SDLoc dl(N);
@@ -354,18 +359,97 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
   			return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);//NewRes);
 		}
 		case ISD::SHL:
+		{
+			const SDNode *N = Op.getNode();
+		 	SDLoc dl(N);
+			if(N->getValueType(0) == MVT::i16)
+			{
+				return 
+					DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, 
+						DAG.getNode(TeakISD::SHIFT_ARITH, dl, MVT::i40, 
+							DAG.getNode(ISD::ZERO_EXTEND, dl, MVT::i40,
+								N->getOperand(0)), 
+							DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, N->getOperand(1))));
+			}
+			else if(N->getValueType(0) == MVT::i40)
+			{
+				//emit arithmetic shift, because it is the same as logical for left
+				//shifts, and we don't want to modify the shift flag if not needed
+				return DAG.getNode(TeakISD::SHIFT_ARITH, dl, MVT::i40, 
+					N->getOperand(0), 
+					DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, N->getOperand(1)));
+			}
+			else
+				llvm_unreachable("Unimplemented shift operand");
+		}
 		case ISD::SRL:
+		{
+			const SDNode* N = Op.getNode();
+		 	SDLoc dl(N);
+			SDValue shiftOp = N->getOperand(1);
+			if(N->getValueType(0) == MVT::i16)
+			{
+				return
+					DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, 
+						DAG.getNode(TeakISD::SHIFT_LOGIC, dl, MVT::i40, 
+							DAG.getNode(ISD::ZERO_EXTEND, dl, MVT::i40,
+								N->getOperand(0)), 
+							//negation for right shift
+							DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, 
+								DAG.getNode(ISD::SUB, dl, MVT::i40,
+									DAG.getConstant(0, dl, MVT::i40), N->getOperand(1)))));
+			}
+			else if(N->getValueType(0) == MVT::i40)
+				return
+					DAG.getNode(TeakISD::SHIFT_LOGIC, dl, MVT::i40,
+						N->getOperand(0), 
+						//negation for right shift
+						DAG.getNode(ISD::TRUNCATE, dl, MVT::i16,
+							DAG.getNode(ISD::SUB, dl, MVT::i40,
+								DAG.getConstant(0, dl, MVT::i40), N->getOperand(1))));
+			else
+				llvm_unreachable("Unimplemented shift operand");
+		}
 		case ISD::SRA:
 		{
-			DAG.dump();
 			const SDNode *N = Op.getNode();
-			SDLoc dl(N);
-			assert(N->getValueType(0) == MVT::i16 && "Unexpected custom legalisation");
-			SDValue NewOp0 = DAG.getNode(Op.getOpcode() == ISD::SRA ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND, dl, MVT::i40, N->getOperand(0));
-			SDValue NewWOp = DAG.getNode(N->getOpcode(), dl, MVT::i40, NewOp0, N->getOperand(1));
-			//SDValue NewRes = DAG.getNode(ISD::SIGN_EXTEND_INREG, dl, MVT::i40, NewWOp, DAG.getValueType(MVT::i16));
-  			return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);//NewRes);
+		 	SDLoc dl(N);
+			if(N->getValueType(0) == MVT::i16)
+			{
+				return
+					DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, 
+						DAG.getNode(TeakISD::SHIFT_ARITH, dl, MVT::i40, 
+							DAG.getNode(ISD::SIGN_EXTEND, dl, MVT::i40,
+								N->getOperand(0)), 
+							//negation for right shift
+							DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, 
+								DAG.getNode(ISD::SUB, dl, MVT::i40,
+									DAG.getConstant(0, dl, MVT::i40), N->getOperand(1)))));
+			}
+			else if(N->getValueType(0) == MVT::i40)
+				return
+					DAG.getNode(TeakISD::SHIFT_ARITH, dl, MVT::i40,
+						N->getOperand(0), 
+						//negation for right shift
+						DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, 
+							DAG.getNode(ISD::SUB, dl, MVT::i40,
+								DAG.getConstant(0, dl, MVT::i40), N->getOperand(1))));
+			else
+				llvm_unreachable("Unimplemented shift operand");
 		}
+		// case ISD::SHL:
+		// case ISD::SRL:
+		// case ISD::SRA:
+		// {
+		// 	DAG.dump();
+		// 	const SDNode *N = Op.getNode();
+		// 	SDLoc dl(N);
+		// 	assert(N->getValueType(0) == MVT::i16 && "Unexpected custom legalisation");
+		// 	SDValue NewOp0 = DAG.getNode(Op.getOpcode() == ISD::SRA ? ISD::SIGN_EXTEND : ISD::ZERO_EXTEND, dl, MVT::i40, N->getOperand(0));
+		// 	SDValue NewWOp = DAG.getNode(N->getOpcode(), dl, MVT::i40, NewOp0, N->getOperand(1));
+		// 	//SDValue NewRes = DAG.getNode(ISD::SIGN_EXTEND_INREG, dl, MVT::i40, NewWOp, DAG.getValueType(MVT::i16));
+  		// 	return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);//NewRes);
+		// }
 		// case ISD::MUL:
 		// {
 		// 	const SDNode *N = Op.getNode();

@@ -56,7 +56,7 @@ BitVector TeakRegisterInfo::getReservedRegs(const MachineFunction &MF) const
     Reserved.set(Teak::PC);
     Reserved.set(Teak::R7);
     Reserved.set(Teak::LC);
-    Reserved.set(Teak::SV);
+    //Reserved.set(Teak::SV);
     return Reserved;
 }
 
@@ -106,6 +106,8 @@ unsigned TeakRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC, Ma
             return 0;
         case Teak::GRRegsRegClassID:
             return 5;
+        case Teak::SVRegRegClassID:
+            return 0;
         case Teak::ABRegsRegClassID:
             return 4;
         case Teak::ALRegsRegClassID:
@@ -250,6 +252,11 @@ bool TeakRegisterInfo::shouldCoalesce(MachineInstr *MI, const TargetRegisterClas
     dbgs() << "DstRC: " << DstRC->getID() << "\n";
     dbgs() << "DstSubReg: " << DstSubReg << "\n";
     dbgs() << "NewRC: " << NewRC->getID() << "\n";
+
+    if (SrcRC->hasSuperClassEq(&Teak::SVRegRegClass) ||
+        DstRC->hasSuperClassEq(&Teak::SVRegRegClass) ||
+        NewRC->hasSuperClassEq(&Teak::SVRegRegClass))
+        return false;
 
     if(DstSubReg == Teak::sub_16bit)
         return true;

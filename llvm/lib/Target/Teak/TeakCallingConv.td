@@ -55,5 +55,5 @@ def CC_Teak : CallingConv<[
   //CCIfType<[i32], CCAssignToStack<4, 4>>
 ]>;
 
-def CSR : CalleeSavedRegs<(add Y0, Y1, R0, R1, R2, R3, R4, R5, R6, R7, SV)>;
+def CSR : CalleeSavedRegs<(add Y0, Y1, R0, R1, R2, R3, R4, R5, R6, R7)>;
 def CSR_NoRegs : CalleeSavedRegs<(add)>;

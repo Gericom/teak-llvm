@@ -87,6 +87,13 @@ def VTR1  : TeakReg<0, "vtr1">;
 def PRPAGE  : TeakReg<0, "prpage">;
 
 def STT0 : TeakReg<0, "stt0">;
+def STT1 : TeakReg<0, "stt1">;
+def STT2 : TeakReg<0, "stt2">;
+
+def MOD0 : TeakReg<0, "mod0">;
+def MOD1 : TeakReg<0, "mod1">;
+def MOD2 : TeakReg<0, "mod2">;
+def MOD3 : TeakReg<0, "mod3">;
 
 def ICC : TeakReg<0, "ICC">;//for flag setting ops, maybe rename
 
@@ -115,6 +122,9 @@ def FP : RegisterClass<"Teak", [i16], 16, (add R7)>;
 def Y0Regs : RegisterClass<"Teak", [i16], 16, (add Y0)>;
 def P0Regs : RegisterClass<"Teak", [i32], 32, (add P0)>;
 def PRegs : RegisterClass<"Teak", [i32], 32, (add P0, P1)>;
+def SVReg : RegisterClass<"Teak", [i16], 16, (add SV)>;
 //def XRegs : RegisterClass<"Teak", [i16], 16, (add X0, X1)>;
 //def YRegs : RegisterClass<"Teak", [i16], 16, (add Y0, Y1)>;
 //def PRegs : RegisterClass<"Teak", [i32], 32, (add P0, P1)>;
+
+def SttModRegs : RegisterClass<"Teak", [i16], 16, (add STT0, STT1, STT2, MOD0, MOD1, MOD2, MOD3)>;
