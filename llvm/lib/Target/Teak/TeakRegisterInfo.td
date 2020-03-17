@@ -99,11 +99,11 @@ def ICC : TeakReg<0, "ICC">;//for flag setting ops, maybe rename
 
 // Register classes.
 //
-def GRRegs : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R7)>;
+def GRRegs : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7)>;
 def RegNoBRegs40 : RegisterClass<"Teak", [i40], 32, (add A0, A1)>;
-def RegNoBRegs16 : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R7, Y0, SP, B0H, B1H, B0L, B1L, A0L, A1L, A0H, A1H, LC, SV)>;
-def RegNoBRegs16_nolh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R7, Y0, SP, LC, SV)>;
-def RegNoBRegs16_noh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R7, Y0, SP, A0L, A1L, B0L, B1L, LC, SV)>;
+def RegNoBRegs16 : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, B0H, B1H, B0L, B1L, A0L, A1L, A0H, A1H, LC, SV)>;
+def RegNoBRegs16_nolh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, LC, SV)>;
+def RegNoBRegs16_noh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, A0L, A1L, B0L, B1L, LC, SV)>;
 //def RegNoBRegsP040 : RegisterClass<"Teak", [i40], 32, (add A0, A1)>;
 //def RegNoBRegsP016 : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R7, Y0, /**/ SP, B0H, B1H, B0L, B1L, A0L, A1L, A0H, A1H, LC, SV)>;
 def ARegs : RegisterClass<"Teak", [i40], 32, (add A0, A1)>;
