@@ -53,18 +53,20 @@ TeakTargetMachine::TeakTargetMachine(const Target &T, const Triple &TT,
 
 namespace {
 /// Teak Code Generator Pass Configuration Options.
-class TeakPassConfig : public TargetPassConfig {
+class TeakPassConfig : public TargetPassConfig
+{
 public:
   TeakPassConfig(TeakTargetMachine &TM, PassManagerBase &PM)
       : TargetPassConfig(TM, PM) {}
 
-  TeakTargetMachine &getTeakTargetMachine() const {
-    return getTM<TeakTargetMachine>();
-  }
+    TeakTargetMachine& getTeakTargetMachine() const {
+        return getTM<TeakTargetMachine>();
+    }
 
-  virtual bool addPreISel() override;
-  virtual bool addInstSelector() override;
-  virtual void addPreEmitPass() override;
+    virtual bool addPreISel() override;
+    virtual void addPreSched2() override;
+    virtual bool addInstSelector() override;
+    virtual void addPreEmitPass() override;
 };
 } // namespace
 
@@ -73,6 +75,12 @@ TargetPassConfig *TeakTargetMachine::createPassConfig(PassManagerBase &PM) {
 }
 
 bool TeakPassConfig::addPreISel() { return false; }
+
+void TeakPassConfig::addPreSched2()
+{
+    if (getOptLevel() != CodeGenOpt::None)
+        addPass(&IfConverterID);
+}
 
 bool TeakPassConfig::addInstSelector() {
   addPass(createTeakISelDag(getTeakTargetMachine(), getOptLevel()));

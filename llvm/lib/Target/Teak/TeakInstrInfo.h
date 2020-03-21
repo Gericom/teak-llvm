@@ -85,6 +85,11 @@ public:
                                     const TargetRegisterInfo *TRI) const
       override;
 
+  virtual bool isPredicated(const MachineInstr &MI) const override;
+  virtual bool PredicateInstruction(MachineInstr &MI, ArrayRef<MachineOperand> Pred) const override;
+  virtual bool isProfitableToIfCvt(MachineBasicBlock &MBB, unsigned NumCycles, unsigned ExtraPredCycles, BranchProbability Probability) const;
+  virtual bool isProfitableToIfCvt(MachineBasicBlock &TBB, unsigned TCycles, unsigned TExtra, MachineBasicBlock &FBB, unsigned FCycles, unsigned FExtra, BranchProbability Probability) const;
+
   virtual bool expandPostRAPseudo(MachineInstr &MI) const
      override;
 };

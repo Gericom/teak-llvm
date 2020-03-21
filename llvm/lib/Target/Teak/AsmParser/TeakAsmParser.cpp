@@ -304,9 +304,13 @@ bool TeakAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode, Opera
     //dbgs() << "Tokens:\n";
     if(((TeakOperand&)*Operands[0]).getToken() == "call")
     {
-        //todo: support condition code!
+        std::string cc = ((TeakOperand&)*Operands[2]).getToken();
+        TeakCC::CondCodes condition;
+        if(!ParseConditionOp(cc, condition))
+            return Error(IDLoc, "Invalid condition code!");
         Inst.setOpcode(Teak::CALL_imm);
         Inst.addOperand(MCOperand::createExpr(MCSymbolRefExpr::create(((TeakOperand&)*Operands[1]).getToken(), MCSymbolRefExpr::VK_None, getContext())));
+        Inst.addOperand(MCOperand::createImm((int)condition));
         Out.EmitInstruction(Inst, getSTI());
         return false;
     }
@@ -316,7 +320,6 @@ bool TeakAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode, Opera
         TeakCC::CondCodes condition;
         if(!ParseConditionOp(cc, condition))
             return Error(IDLoc, "Invalid condition code!");
-        //todo: support condition code!
         Inst.setOpcode(Teak::BRCond_imm18);
         Inst.addOperand(MCOperand::createExpr(MCSymbolRefExpr::create(((TeakOperand&)*Operands[1]).getToken(), MCSymbolRefExpr::VK_None, getContext())));
         Inst.addOperand(MCOperand::createImm((int)condition));

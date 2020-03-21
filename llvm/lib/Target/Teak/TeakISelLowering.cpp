@@ -35,6 +35,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Signals.h"
 
 using namespace llvm;
 
@@ -97,10 +98,13 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 	//setOperationAction(ISD::MUL, MVT::i40, Expand);
 
 	setOperationAction(ISD::ADD, MVT::i16, Custom);
-	setOperationAction(ISD::AND, MVT::i16, Custom);
-	setOperationAction(ISD::XOR, MVT::i16, Custom);
-	setOperationAction(ISD::OR, MVT::i16, Custom);
 	setOperationAction(ISD::SUB, MVT::i16, Custom);
+	setOperationAction(ISD::AND, MVT::i16, Custom);
+	setOperationAction(ISD::AND, MVT::i40, Custom);
+	setOperationAction(ISD::XOR, MVT::i16, Custom);
+	setOperationAction(ISD::XOR, MVT::i40, Custom);
+	setOperationAction(ISD::OR, MVT::i16, Custom);
+	setOperationAction(ISD::OR, MVT::i40, Custom);
 	setOperationAction(ISD::SHL, MVT::i16, Custom);
 	setOperationAction(ISD::SHL, MVT::i40, Custom);
 	setOperationAction(ISD::SRL, MVT::i16, Custom);
@@ -110,7 +114,7 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 
 	setStackPointerRegisterToSaveRestore(Teak::SP);
 
-	setSchedulingPreference(Sched::Hybrid);
+	setSchedulingPreference(Sched::RegPressure);
 
 	// Nodes that require custom lowering
 	setOperationAction(ISD::GlobalAddress, MVT::i16, Custom);
@@ -123,6 +127,7 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 	setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i1, Expand);
 
 	setOperationAction(ISD::Constant, MVT::i32, Promote);
+	setOperationAction(ISD::Constant, MVT::i8, Promote);
 
 	// setOperationAction(ISD::SIGN_EXTEND, MVT::i40, Expand);
 	// setOperationAction(ISD::SIGN_EXTEND, MVT::i32, Promote);
@@ -149,6 +154,12 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 	setOperationAction(ISD::BR_CC, MVT::i16, Custom);
 	setOperationAction(ISD::BR_CC, MVT::i32, Custom);
 	setOperationAction(ISD::BR_CC, MVT::i40, Custom);
+
+	//support for post increment and decrement
+	setIndexedLoadAction(ISD::POST_INC, MVT::i16, Legal);
+	setIndexedLoadAction(ISD::POST_DEC, MVT::i16, Legal);
+	setIndexedStoreAction(ISD::POST_INC, MVT::i16, Legal);
+	setIndexedStoreAction(ISD::POST_DEC, MVT::i16, Legal);
 
 	// setOperationAction(ISD::STACKSAVE, MVT::Other, Expand);
 	// setOperationAction(ISD::STACKSAVE, MVT::i40, Expand);
@@ -197,6 +208,46 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 
 // 	return DAG.getNode(AVRISD::SELECT_CC, DL, VTs, Ops);
 // }
+
+bool TeakTargetLowering::isNarrowingProfitable(EVT VT1, EVT VT2) const
+{
+  	return VT2 != MVT::i8 && VT2 != MVT::i1;
+}
+
+bool TeakTargetLowering::getPostIndexedAddressParts(SDNode* N, SDNode* Op,
+	SDValue &Base, SDValue &Offset, ISD::MemIndexedMode &AM, SelectionDAG &DAG) const 
+{
+	return false;
+	// SDLoc DL(N);
+	// const LoadSDNode* ld = dyn_cast<LoadSDNode>(N);
+	// if (!ld)
+	// 	return false;
+	// if(ld->getMemoryVT() != MVT::i16)
+	// 	return false;
+	// if (Op->getOpcode() != ISD::ADD && Op->getOpcode() != ISD::SUB)
+	// 	return false;	
+
+	// if (const ConstantSDNode* rhs = dyn_cast<ConstantSDNode>(Op->getOperand(1)))
+	// {
+	// 	int rhsc = rhs->getSExtValue();
+	// 	if (Op->getOpcode() == ISD::SUB)
+	// 		rhsc = -rhsc;
+	// 	if (rhsc != 1 && rhsc != -1)
+	// 		return false;
+
+	// 	Base = Op->getOperand(0);
+	// 	Offset = DAG.getConstant(rhsc, DL, MVT::i16);
+	// 	AM = ISD::POST_INC;
+
+	// 	return true;
+	// }
+	// // dbgs() << "getPostIndexedAddressParts\n";
+	// // EVT VT;
+	// // SDLoc DL(N);
+	// // Op->dump();
+	// // N->dump();
+	// return false;
+}
 
 bool TeakTargetLowering::isTruncateFree(Type *SrcTy, Type *DstTy) const
 {
@@ -329,6 +380,11 @@ SDValue TeakTargetLowering::LowerBR_CC(SDValue Op, SelectionDAG &DAG) const
 
 SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
 {
+	// dbgs() << "LowerOperation\n";
+	// sys::PrintStackTrace(dbgs());
+
+	// DAG.dump();
+	// Op.dump(&DAG);
 	switch (Op.getOpcode()) 
 	{
 		default:
@@ -344,19 +400,51 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
 		case ISD::GlobalAddress:
 			return LowerGlobalAddress(Op, DAG);
 		case ISD::ADD:
-		case ISD::AND:
-		case ISD::OR:
 		case ISD::SUB:
-		case ISD::XOR:
 		{
 			const SDNode *N = Op.getNode();
 			SDLoc dl(N);
 			assert(N->getValueType(0) == MVT::i16 && "Unexpected custom legalisation");
+			//this seems to give problems for some reason
+			// if(isa<ConstantSDNode>(N->getOperand(1)))
+			// {
+			// 	dbgs() << "constant!\n";
+			// 	return Op;
+			// }
+			dbgs() << "Lowering!\n";
 			SDValue NewOp0 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, N->getOperand(0));
 			SDValue NewOp1 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, N->getOperand(1));
-			SDValue NewWOp = DAG.getNode(N->getOpcode(), dl, MVT::i40, NewOp0, NewOp1);
-			//SDValue NewRes = DAG.getNode(ISD::SIGN_EXTEND_INREG, dl, MVT::i40, NewWOp, DAG.getValueType(MVT::i16));
-  			return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);//NewRes);
+			SDValue NewWOp = DAG.getNode(Op.getOpcode(), dl, MVT::i40, NewOp0, NewOp1);
+  			return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);
+		}
+		case ISD::AND:
+		case ISD::OR:
+		case ISD::XOR:
+		{
+			const SDNode *N = Op.getNode();
+			SDLoc dl(N);
+			TeakISD::NodeType nodeType;
+			switch(Op.getOpcode())
+			{
+				case ISD::AND:
+					nodeType = TeakISD::AND;
+					break;
+				case ISD::OR:
+					nodeType = TeakISD::OR;
+					break;
+				case ISD::XOR:
+					nodeType = TeakISD::XOR;
+					break;
+			}
+			if(N->getValueType(0) == MVT::i40)
+				return DAG.getNode(nodeType, dl, MVT::i40, N->getOperand(0), N->getOperand(1));
+			assert(N->getValueType(0) == MVT::i16 && "Unexpected custom legalisation");
+			if(isa<ConstantSDNode>(N->getOperand(1)))
+				return DAG.getNode(nodeType, dl, MVT::i16, N->getOperand(0), N->getOperand(1));
+			SDValue NewOp0 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, N->getOperand(0));
+			SDValue NewOp1 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, N->getOperand(1));
+			SDValue NewWOp = DAG.getNode(nodeType, dl, MVT::i40, NewOp0, NewOp1);
+  			return DAG.getNode(ISD::TRUNCATE, dl, MVT::i16, NewWOp);
 		}
 		case ISD::SHL:
 		{
@@ -489,6 +577,7 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
 		//   Op->getOperand(2));
 		// }
 	}
+	return SDValue();
 }
 
 SDValue TeakTargetLowering::LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const

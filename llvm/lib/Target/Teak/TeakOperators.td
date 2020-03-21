@@ -70,6 +70,15 @@ def SDT_TeakShift : SDTypeProfile<1, 2, [SDTCisVT<0, i40>, SDTCisVT<1, i40>, SDT
 def TeakShiftArith : SDNode<"TeakISD::SHIFT_ARITH", SDT_TeakShift>; 
 def TeakShiftLogic : SDNode<"TeakISD::SHIFT_LOGIC", SDT_TeakShift>; 
 
+def SDT_TeakAnd : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisSameAs<1, 0>, SDTCisSameAs<2, 0>]>;
+def TeakAnd : SDNode<"TeakISD::AND", SDT_TeakAnd>;
+
+def SDT_TeakOr : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisSameAs<1, 0>, SDTCisSameAs<2, 0>]>;
+def TeakOr : SDNode<"TeakISD::OR", SDT_TeakOr>; 
+
+def SDT_TeakXor : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisSameAs<1, 0>, SDTCisSameAs<2, 0>]>;
+def TeakXor : SDNode<"TeakISD::XOR", SDT_TeakXor>; 
+
 // //===----------------------------------------------------------------------===//
 // // Operand Definitions.
 // //===----------------------------------------------------------------------===//

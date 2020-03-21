@@ -48,6 +48,17 @@ namespace llvm
         };
     }
 
+    namespace TeakStepZIDS
+    {
+        enum Steps
+        {
+            Zero = 0,
+            AddOne = 1,
+            SubOne = 2,
+            AddStep = 3
+        };
+    }
+
     inline static const char* TeakCCondCodeToString(TeakCC::CondCodes CC)
     {
         switch (CC)

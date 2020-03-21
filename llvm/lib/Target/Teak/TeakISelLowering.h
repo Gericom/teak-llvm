@@ -40,7 +40,10 @@ enum NodeType {
   SELECT_ICC,
   WRAPPER,
   SHIFT_ARITH,
-  SHIFT_LOGIC
+  SHIFT_LOGIC,
+  AND,
+  OR,
+  XOR
 };
 }
 
@@ -50,6 +53,11 @@ enum NodeType {
 class TeakTargetLowering : public TargetLowering {
 public:
   explicit TeakTargetLowering(const TeakTargetMachine &TM);
+
+  bool isNarrowingProfitable(EVT VT1, EVT VT2) const override;
+
+  bool getPostIndexedAddressParts(SDNode* N, SDNode* Op, SDValue &Base,
+      SDValue &Offset, ISD::MemIndexedMode &AM, SelectionDAG &DAG) const override;
 
   virtual bool isTruncateFree(Type *SrcTy, Type *DstTy) const override;
   virtual bool isTruncateFree(EVT SrcVT, EVT DstVT) const override;

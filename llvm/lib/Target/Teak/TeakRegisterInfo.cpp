@@ -105,7 +105,7 @@ unsigned TeakRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC, Ma
         default:
             return 0;
         case Teak::GRRegsRegClassID:
-            return 6;
+            return 7;
         case Teak::SVRegRegClassID:
             return 0;
         case Teak::ABRegsRegClassID:
@@ -115,7 +115,7 @@ unsigned TeakRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC, Ma
         case Teak::ABLRegsRegClassID:
             return 4;
         case Teak::RegNoBRegs16_nohRegClassID:
-            return 10;
+            return 12;
     }
 }
 

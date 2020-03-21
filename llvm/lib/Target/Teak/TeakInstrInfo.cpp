@@ -211,6 +211,9 @@ void TeakInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   const TeakSubtarget &st = MF.getSubtarget<TeakSubtarget>();
   dbgs() << "copyPhysReg(" << SrcReg.id() << ", " << DestReg.id() << ")\n";
   unsigned op;
+  // if(Teak::ARegsRegClass.contains(SrcReg) && Teak::ARegsRegClass.contains(DestReg) && SrcReg != DestReg)
+  //     op = Teak::COPY_a;
+  // else
   if(Teak::ABRegsRegClass.contains(SrcReg) && Teak::ABRegsRegClass.contains(DestReg))
       op = Teak::MOV_ab_ab;
   else if(Teak::RegNoBRegs16RegClass.contains(SrcReg) && Teak::RegNoBRegs40RegClass.contains(DestReg))
@@ -319,6 +322,54 @@ void TeakInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
      //   assert(0 && "Unimplemented loadRegFromStackSlot");
     // BuildMI(MBB, I, I->getDebugLoc(), get(Teak::LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40), DestReg)
     //     .addFrameIndex(FrameIndex).addImm(0);
+}
+
+bool TeakInstrInfo::isPredicated(const MachineInstr &MI) const
+{
+    if (MI.isBundle())
+    {
+        MachineBasicBlock::const_instr_iterator I = MI.getIterator();
+        MachineBasicBlock::const_instr_iterator E = MI.getParent()->instr_end();
+        while (++I != E && I->isInsideBundle())
+        {
+            int PIdx = I->findFirstPredOperandIdx();
+            if (PIdx != -1 && I->getOperand(PIdx).getImm() != TeakCC::True)
+              return true;
+        }
+        return false;
+    }
+
+    int PIdx = MI.findFirstPredOperandIdx();
+    return PIdx != -1 && MI.getOperand(PIdx).getImm() != TeakCC::True;
+}
+
+bool TeakInstrInfo::PredicateInstruction(MachineInstr &MI, ArrayRef<MachineOperand> Pred) const
+{
+    dbgs() << "PredicateInstruction\n";
+    unsigned Opc = MI.getOpcode();
+
+    int PIdx = MI.findFirstPredOperandIdx();
+    if (PIdx != -1)
+    {
+        MachineOperand &PMO = MI.getOperand(PIdx);
+        PMO.setImm(Pred[0].getImm());
+        //MI.getOperand(PIdx+1).setReg(Pred[1].getReg());
+        return true;
+    }
+    return false;
+}
+
+bool TeakInstrInfo::isProfitableToIfCvt(MachineBasicBlock &MBB, unsigned NumCycles, unsigned ExtraPredCycles, BranchProbability Probability) const
+{
+    dbgs() << "isProfitableToIfCvt\n";
+    return true;
+}
+
+bool TeakInstrInfo::isProfitableToIfCvt(MachineBasicBlock &TBB, unsigned TCycles, unsigned TExtra,
+    MachineBasicBlock &FBB, unsigned FCycles, unsigned FExtra, BranchProbability Probability) const
+{
+    dbgs() << "isProfitableToIfCvt TF\n";
+    return true;
 }
 
 bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
@@ -449,9 +500,14 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
               BuildMI(MBB, MI, DL, get(Teak::PUSH_ararpsttmod), Teak::STT0);
           if(dstReg == Teak::A0L || dstReg == Teak::A1L)
           {
-                BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg == Teak::A0L ? Teak::A0 : Teak::A1)
-                    .addReg(Teak::R7)
-                    .addImm(frameOffset);
+                if(frameOffset >= -64 && frameOffset <= 63)
+                    BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset7s_a), dstReg == Teak::A0L ? Teak::A0 : Teak::A1)
+                        .addReg(Teak::R7)
+                        .addImm(frameOffset);
+                else
+                    BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg == Teak::A0L ? Teak::A0 : Teak::A1)
+                        .addReg(Teak::R7)
+                        .addImm(frameOffset);
           }
           else
           {
@@ -481,9 +537,14 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
               BuildMI(MBB, MI, DL, get(Teak::PUSH_ararpsttmod), Teak::STT0);
           if(dstReg == Teak::A0 || dstReg == Teak::A1)
           {
-                BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg)
-                    .addReg(Teak::R7)
-                    .addImm(frameOffset);
+                if(frameOffset >= -64 && frameOffset <= 63)
+                    BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset7s_a), dstReg)
+                        .addReg(Teak::R7)
+                        .addImm(frameOffset);   
+                else
+                    BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg)
+                        .addReg(Teak::R7)
+                        .addImm(frameOffset);                
           }
           else
           {
@@ -534,31 +595,53 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
               BuildMI(MBB, MI, DL, get(Teak::PUSH_ararpsttmod), Teak::STT0);
           if(dstReg == Teak::A0 || dstReg == Teak::A1)
           {
-              BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg)
-                .addReg(Teak::R7)
-                .addImm(frameOffset);
+              if(frameOffset >= -64 && frameOffset <= 63)
+                  BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset7s_a), dstReg)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset);
+              else
+                  BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), dstReg)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset);
               BuildMI(MBB, MI, DL, get(Teak::SHFI_arith_ab_ab), dstReg)
                 .addReg(dstReg)
                 .addImm(16);
-              BuildMI(MBB, MI, DL, get(Teak::OR_r7offset16_a), dstReg)
-                .addReg(Teak::R7)
-                .addImm(frameOffset - 1)
-                .addReg(dstReg);
+              if(frameOffset - 1 >= -64 && frameOffset - 1 <= 63)
+                  BuildMI(MBB, MI, DL, get(Teak::OR_r7offset7s_a), dstReg)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset - 1)
+                    .addReg(dstReg);
+              else
+                  BuildMI(MBB, MI, DL, get(Teak::OR_r7offset16_a), dstReg)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset - 1)
+                    .addReg(dstReg);
           }
           else
           {
               BuildMI(MBB, MI, DL, get(Teak::MOV_ab_ab), dstReg)
                 .addReg(Teak::A0);
-              BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), Teak::A0)
-                .addReg(Teak::R7)
-                .addImm(frameOffset);
+              if(frameOffset >= -64 && frameOffset <= 63)
+                  BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset7s_a), Teak::A0)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset);
+              else
+                  BuildMI(MBB, MI, DL, get(Teak::MOV_r7offset16_a), Teak::A0)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset);
               BuildMI(MBB, MI, DL, get(Teak::SHFI_arith_ab_ab), Teak::A0)
                 .addReg(Teak::A0)
                 .addImm(16);
-              BuildMI(MBB, MI, DL, get(Teak::OR_r7offset16_a), Teak::A0)
-                .addReg(Teak::R7)
-                .addImm(frameOffset - 1)
-                .addReg(Teak::A0);
+              if(frameOffset - 1 >= -64 && frameOffset - 1 <= 63)
+                  BuildMI(MBB, MI, DL, get(Teak::OR_r7offset7s_a), Teak::A0)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset - 1)
+                    .addReg(Teak::A0);
+              else
+                  BuildMI(MBB, MI, DL, get(Teak::OR_r7offset16_a), Teak::A0)
+                    .addReg(Teak::R7)
+                    .addImm(frameOffset - 1)
+                    .addReg(Teak::A0);
               BuildMI(MBB, MI, DL, get(Teak::SWAP_ab))
                 .addReg(dstReg, RegState::Define)
                 .addReg(Teak::A0, RegState::Define)
@@ -611,7 +694,8 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
                .addReg(Teak::MOD0);
           BuildMI(MBB, MI, DL, get(Teak::SHFC_arith_ab_ab_sv), MI.getOperand(0).getReg())
                .add(MI.getOperand(1))
-               .add(MI.getOperand(2));
+               .add(MI.getOperand(2))
+               .add(MI.getOperand(3));
           BuildMI(MBB, MI, DL, get(Teak::RST_imm16_sttmod), Teak::MOD0)
                .addImm(0x80)
                .addReg(Teak::MOD0);
