@@ -370,31 +370,37 @@ def MOV_memrn_ab1 : InstTeak<(outs ABRegs:$dst), (ins GRRegs:$srcAddr), "mov [$s
 //     [(truncstorei16 ARegs:$a, addr:$offset)]>;
 
 let mayStore = 1 in
-def MOV_a_r7offset7s : InstTeak<(outs), (ins ARegs:$a, memsrc:$offset), "mov ${a}l, $offset", []>;
+def MOV_al_r7offset7s : InstTeak<(outs), (ins ALRegs:$a, memsrc:$offset), "mov $a, $offset", []>;
 
 let mayStore = 1 in
-def MOV_a_r7offset16 : InstTeakImm16<(outs), (ins ARegs:$a, memsrc:$offset), "mov ${a}l, $offset", []>;
+def MOV_al_r7offset16 : InstTeakImm16<(outs), (ins ALRegs:$a, memsrc:$offset), "mov $a, $offset", []>;
 
-let Defs = [ICC], mayStore = 1 in
+let mayStore = 1 in
 def STORE_REG_TO_STACK_PSEUDO_16 : TeakPseudoInst<(outs), (ins RegNoBRegs16:$a, memsrc:$offset), "STORE_REG_TO_STACK_PSEUDO_16", [(store RegNoBRegs16:$a, addr:$offset)]>;
 
-let Defs = [ICC], mayStore = 1 in
+let mayStore = 1 in
 def STORE_REG_TO_STACK_PSEUDO_TRUNC16 : TeakPseudoInst<(outs), (ins ABRegs:$a, memsrc:$offset), "STORE_REG_TO_STACK_PSEUDO_TRUNC16", [(truncstorei16 ABRegs:$a, addr:$offset)]>;
 
-let Defs = [ICC], mayStore = 1 in
+let mayStore = 1 in
 def STORE_REG_TO_STACK_PSEUDO_32 : TeakPseudoInst<(outs), (ins ABRegs:$a, memsrc:$offset), "STORE_REG_TO_STACK_PSEUDO_32", [(truncstorei32 ABRegs:$a, addr:$offset)]>;
 
-let mayLoad = 1, Defs = [ICC] in
+let mayLoad = 1 in
 def LOAD_REG_FROM_STACK_PSEUDO_16 : TeakPseudoInst<(outs RegNoBRegs16:$a), (ins memsrc:$offset), "LOAD_REG_FROM_STACK_PSEUDO_16", [(set RegNoBRegs16:$a, (load addr:$offset))]>;
 
-let mayLoad = 1, Defs = [ICC] in
+let mayLoad = 1 in
 def LOAD_REG_FROM_STACK_PSEUDO_16_SEXT40 : TeakPseudoInst<(outs ABRegs:$a), (ins memsrc:$offset), "LOAD_REG_FROM_STACK_PSEUDO_16_SEXT40", [(set ABRegs:$a, (sextloadi16 addr:$offset))]>;
 
-let mayLoad = 1, Defs = [ICC] in
+let mayLoad = 1 in
 def LOAD_REG_FROM_STACK_PSEUDO_16_ZEXT40 : TeakPseudoInst<(outs ABRegs:$a), (ins memsrc:$offset), "LOAD_REG_FROM_STACK_PSEUDO_16_ZEXT40", [(set ABRegs:$a, (zextloadi16 addr:$offset))]>;
 
-let mayLoad = 1, Defs = [ICC] in
+let mayLoad = 1 in
 def LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40 : TeakPseudoInst<(outs ABRegs:$a), (ins memsrc:$offset), "LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40", [(set ABRegs:$a, (extloadi32 addr:$offset))]>;
+
+// let mayLoad = 1, Defs = [ICC] in
+// def LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40 : TeakPseudoInst<(outs ARegs:$a), (ins memsrc:$offset), "LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40", [(set ARegs:$a, (extloadi32 addr:$offset))]>;
+
+//let mayLoad = 1, Defs = [ICC] in
+//def LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40 : TeakPseudoInst<(outs ARegs:$a), (ins memsrc:$offset), "LOAD_REG_FROM_STACK_PSEUDO_32_SEXT40", [(set ARegs:$a, (load addr:$offset))]>;
 
 //def : Pat<(extloadi32 memsrc:$offset), (LOAD_REG_FROM_STACK_PSEUDO_32_ZEXT40 addr:$offset)>;
 

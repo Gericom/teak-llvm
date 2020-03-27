@@ -251,6 +251,7 @@ void TeakInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
     dbgs() << "storeRegToStackSlot\n";
     dbgs() << "SrcReg: " << SrcReg << "\n";
     dbgs() << "TargetRegisterClass: " << RC->getID() << "\n";
+    dbgs() << "ICC live: " << MBB.computeRegisterLiveness(TRI, Teak::ICC, I) << "\n";
     DebugLoc DL;
     if (I != MBB.end())
         DL = I->getDebugLoc();
@@ -305,6 +306,8 @@ void TeakInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
     MachineBasicBlock::iterator I,unsigned DestReg, int FrameIndex,
     const TargetRegisterClass *RC, const TargetRegisterInfo *TRI) const
 {
+    dbgs() << "loadRegFromStackSlot\n";
+    dbgs() << "ICC live: " << MBB.computeRegisterLiveness(TRI, Teak::ICC, I) << "\n";
     DebugLoc DL;
     if (I != MBB.end())
         DL = I->getDebugLoc();
@@ -379,7 +382,8 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
   MachineFunction &MF = *MBB.getParent();
   const TeakSubtarget &st = MF.getSubtarget<TeakSubtarget>();
   const TargetRegisterInfo *RegInfo = st.getRegisterInfo();
-  bool keepFlags = true;//MBB.computeRegisterLiveness(RegInfo, Teak::ICC, MI) != MachineBasicBlock::LQR_Dead;
+  dbgs() << "Expand post, live: " << MBB.computeRegisterLiveness(RegInfo, Teak::ICC, MI) << "\n";
+  bool keepFlags = MBB.computeRegisterLiveness(RegInfo, Teak::ICC, MI) != MachineBasicBlock::LQR_Dead;
   switch (MI.getOpcode())
   {
       default:
@@ -476,15 +480,29 @@ bool TeakInstrInfo::expandPostRAPseudo(MachineInstr &MI) const
           BuildMI(MBB, MI, DL, get(Teak::MOV_regnob16_memrn))
             .addReg(hiReg, getKillRegState(MI.getOperand(0).isKill()))
             .addReg(MI.getOperand(1).getReg());
-          BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
-            .addImm(-1)
-            .addReg(MI.getOperand(1).getReg());
-          BuildMI(MBB, MI, DL, get(Teak::MOV_regnob16_memrn))
-            .addReg(loReg, getKillRegState(MI.getOperand(0).isKill()))
-            .addReg(MI.getOperand(1).getReg());
-          BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
-            .addImm(-frameOffset + 1)
-            .addReg(MI.getOperand(1).getReg());
+          if(loReg == Teak::A0L || loReg == Teak::A1L)
+          {
+                BuildMI(MBB, MI, DL, get(Teak::MOV_al_r7offset7s))
+                        .addReg(loReg, getKillRegState(MI.getOperand(0).isKill()))
+                        .addReg(Teak::R7)
+                        .addImm(-1);
+                if(frameOffset)
+                    BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
+                        .addImm(-frameOffset)
+                        .addReg(MI.getOperand(1).getReg());
+          }
+          else
+          {
+                BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
+                    .addImm(-1)
+                    .addReg(MI.getOperand(1).getReg());
+                BuildMI(MBB, MI, DL, get(Teak::MOV_regnob16_memrn))
+                    .addReg(loReg, getKillRegState(MI.getOperand(0).isKill()))
+                    .addReg(MI.getOperand(1).getReg());
+                BuildMI(MBB, MI, DL, get(Teak::ADDV_imm16_RegNoBRegs16), MI.getOperand(1).getReg())
+                    .addImm(-frameOffset + 1)
+                    .addReg(MI.getOperand(1).getReg());
+          }
           if(keepFlags)
               BuildMI(MBB, MI, DL, get(Teak::POP_ararpsttmod), Teak::STT0);
           MBB.erase(MI);

@@ -54,10 +54,18 @@ class TeakTargetLowering : public TargetLowering {
 public:
   explicit TeakTargetLowering(const TeakTargetMachine &TM);
 
+  bool allowsMemoryAccess(LLVMContext &Context, const DataLayout &DL, EVT VT, unsigned AddrSpace,
+	    unsigned Alignment, MachineMemOperand::Flags Flags, bool *Fast) const override;
+
+  bool shouldReduceLoadWidth(SDNode* Load, ISD::LoadExtType ExtTy, EVT NewVT) const override;
+
   bool isNarrowingProfitable(EVT VT1, EVT VT2) const override;
 
   bool getPostIndexedAddressParts(SDNode* N, SDNode* Op, SDValue &Base,
       SDValue &Offset, ISD::MemIndexedMode &AM, SelectionDAG &DAG) const override;
+
+  bool isLegalICmpImmediate(int64_t Imm) const override;
+  bool isLegalAddImmediate(int64_t Imm) const override;
 
   virtual bool isTruncateFree(Type *SrcTy, Type *DstTy) const override;
   virtual bool isTruncateFree(EVT SrcVT, EVT DstVT) const override;

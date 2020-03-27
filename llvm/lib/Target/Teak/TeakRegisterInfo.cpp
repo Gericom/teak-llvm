@@ -56,8 +56,19 @@ BitVector TeakRegisterInfo::getReservedRegs(const MachineFunction &MF) const
     Reserved.set(Teak::PC);
     Reserved.set(Teak::R7);
     Reserved.set(Teak::LC);
-    //Reserved.set(Teak::SV);
     return Reserved;
+}
+
+const TargetRegisterClass* TeakRegisterInfo::getLargestLegalSuperClass(
+    const TargetRegisterClass* RC, const MachineFunction &MF) const
+{
+    if (Teak::ABRegsRegClass.hasSubClassEq(RC))
+        return &Teak::ABRegsRegClass;
+
+    if (Teak::RegNoBRegs16_nohRegClass.hasSubClassEq(RC))
+        return &Teak::RegNoBRegs16_nohRegClass;
+
+    return RC;
 }
 
 const uint32_t* TeakRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
@@ -75,7 +86,7 @@ const TargetRegisterClass* TeakRegisterInfo::getPointerRegClass(
 
 bool TeakRegisterInfo::requiresRegisterScavenging(const MachineFunction &MF) const
 {
-    return true;
+    return /*false;//*/true;
 }
 
 bool TeakRegisterInfo::trackLivenessAfterRegAlloc(const MachineFunction &MF) const

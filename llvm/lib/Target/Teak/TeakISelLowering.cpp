@@ -249,6 +249,32 @@ bool TeakTargetLowering::getPostIndexedAddressParts(SDNode* N, SDNode* Op,
 	// return false;
 }
 
+bool TeakTargetLowering::allowsMemoryAccess(LLVMContext &Context, const DataLayout &DL, EVT VT, unsigned AddrSpace,
+	unsigned Alignment, MachineMemOperand::Flags Flags, bool *Fast) const
+{
+	if(VT.getSizeInBits() != 16 && VT.getSizeInBits() != 32)
+		return false;
+	return TargetLowering::allowsMemoryAccess(Context, DL, VT, AddrSpace, Alignment, Flags, Fast);
+}
+
+bool TeakTargetLowering::shouldReduceLoadWidth(SDNode* Load, ISD::LoadExtType ExtTy, EVT NewVT) const
+{
+	if(NewVT.getSizeInBits() == 8)
+		return false;
+	return TargetLowering::shouldReduceLoadWidth(Load, ExtTy, NewVT);
+}
+
+
+bool TeakTargetLowering::isLegalICmpImmediate(int64_t Imm) const
+{
+	return Imm >= -32768 && Imm <= 32767;
+}
+
+bool TeakTargetLowering::isLegalAddImmediate(int64_t Imm) const
+{
+	return Imm >= -32768 && Imm <= 32767;
+}
+
 bool TeakTargetLowering::isTruncateFree(Type *SrcTy, Type *DstTy) const
 {
 	if (!SrcTy->isIntegerTy() || !DstTy->isIntegerTy())

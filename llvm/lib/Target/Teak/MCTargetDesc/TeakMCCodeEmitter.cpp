@@ -313,7 +313,7 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
     //if (Desc.getSize() != 4) {
     //   llvm_unreachable("Unexpected instruction size!");
     //}
-    dbgs() << "op: " << MI.getOpcode() << "\n";
+    //dbgs() << "op: " << MI.getOpcode() << "\n";
     switch(MI.getOpcode())
     {
         case Teak::ADD_ab_ab:
@@ -637,11 +637,11 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             EmitConstant(0xD498 | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
             EmitConstant(MI.getOperand(2).getImm() & 0xFFFF, 2, OS);
             break;
-        case Teak::MOV_a_r7offset7s:
-            EmitConstant(0xDC80 | (encodeAxlOp(teakGetAbLReg(MI.getOperand(0).getReg())) << 8) | (MI.getOperand(2).getImm() & 0x7F), 2, OS);
+        case Teak::MOV_al_r7offset7s:
+            EmitConstant(0xDC80 | (encodeAxlOp(MI.getOperand(0).getReg()) << 8) | (MI.getOperand(2).getImm() & 0x7F), 2, OS);
             break;
-        case Teak::MOV_a_r7offset16:
-            EmitConstant(0xD49C | (encodeAxlOp(teakGetAbLReg(MI.getOperand(0).getReg())) << 8), 2, OS);
+        case Teak::MOV_al_r7offset16:
+            EmitConstant(0xD49C | (encodeAxlOp(MI.getOperand(0).getReg()) << 8), 2, OS);
             EmitConstant(MI.getOperand(2).getImm() & 0xFFFF, 2, OS);
             break;
         case Teak::MOV_al_memimm16:
