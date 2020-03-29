@@ -82,14 +82,19 @@ void TeakPassConfig::addPreSched2()
         addPass(&IfConverterID);
 }
 
-bool TeakPassConfig::addInstSelector() {
-  addPass(createTeakISelDag(getTeakTargetMachine(), getOptLevel()));
-  return false;
+bool TeakPassConfig::addInstSelector()
+{
+    addPass(createTeakISelDag(getTeakTargetMachine(), getOptLevel()));
+    return false;
 }
 
-void TeakPassConfig::addPreEmitPass() {}
+void TeakPassConfig::addPreEmitPass()
+{
+    addPass(&BranchRelaxationPassID);
+}
 
 // Force static initialization.
-extern "C" void LLVMInitializeTeakTarget() {
-  RegisterTargetMachine<TeakTargetMachine> X(getTheTeakTarget());
+extern "C" void LLVMInitializeTeakTarget()
+{
+    RegisterTargetMachine<TeakTargetMachine> X(getTheTeakTarget());
 }

@@ -94,80 +94,112 @@ TeakInstrInfo::TeakInstrInfo()
 bool TeakInstrInfo::analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
                             MachineBasicBlock *&FBB,
                             SmallVectorImpl<MachineOperand> &Cond,
-                            bool AllowModify) const {
-  bool HasCondBranch = false;
-  TBB = nullptr;
-  FBB = nullptr;
-  for (MachineInstr &MI : MBB) {
-    if (MI.getOpcode() == Teak::BR_imm18) {
-      MachineBasicBlock *TargetBB = MI.getOperand(0).getMBB();
-      if (HasCondBranch) {
-        FBB = TargetBB;
-      } else {
-        TBB = TargetBB;
-      }
-    } else if (MI.getOpcode() == Teak::BRCond_imm18) {
-      MachineBasicBlock *TargetBB = MI.getOperand(0).getMBB();
-      TBB = TargetBB;
-      Cond.push_back(MI.getOperand(1));
-      HasCondBranch = true;
+                            bool AllowModify) const
+{
+    bool HasCondBranch = false;
+    TBB = nullptr;
+    FBB = nullptr;
+    for (MachineInstr &MI : MBB)
+    {        
+        if(MI.getOpcode() == Teak::BRR_rel7)
+        {
+            MachineBasicBlock *TargetBB = MI.getOperand(0).getMBB();
+            if (HasCondBranch)
+                FBB = TargetBB;
+            else
+                TBB = TargetBB;
+        }
+        else if (MI.getOpcode() == Teak::BRRCond_rel7 || MI.getOpcode() == Teak::BR_imm18)
+        {
+            TBB = MI.getOperand(0).getMBB();
+            Cond.push_back(MI.getOperand(1));
+            //if(MI.getOpcode() == Teak::BRRCond_rel7)
+            //    Cond.push_back(MachineOperand::CreateReg(Teak::ICC, false, true));
+            //else
+            //    Cond.push_back(MI.getOperand(2));
+            HasCondBranch = true;
+        }
+        else if (MI.getOpcode() == Teak::RET)
+            return true;
     }
-    else if (MI.getOpcode() == Teak::RET)
-      return true;
-  }
-  return false;
+    return false;
 }
 
 /// RemoveBranch - Remove the branching code at the end of the specific MBB.
 /// This is only invoked in cases where AnalyzeBranch returns success. It
 /// returns the number of instructions that were removed.
-unsigned TeakInstrInfo::removeBranch(MachineBasicBlock &MBB, int *BytesRemoved) const {
-  if (MBB.empty())
-    return 0;
-  unsigned NumRemoved = 0;
-  auto I = MBB.end();
-  do {
-    --I;
-    unsigned Opc = I->getOpcode();
-    if ((Opc == Teak::BR_imm18) || (Opc == Teak::BRCond_imm18)) {
-      auto ToDelete = I;
-      ++I;
-      MBB.erase(ToDelete);
-      NumRemoved++;
-    }
-  } while (I != MBB.begin());
-  return NumRemoved;
+unsigned TeakInstrInfo::removeBranch(MachineBasicBlock &MBB, int *BytesRemoved) const
+{
+    if(BytesRemoved)
+        *BytesRemoved = 0;
+    if (MBB.empty())
+        return 0;
+    unsigned NumRemoved = 0;
+    auto I = MBB.end();
+    do
+    {
+        --I;
+        unsigned Opc = I->getOpcode();
+        if (Opc == Teak::BRR_rel7 || Opc == Teak::BRRCond_rel7 || Opc == Teak::BR_imm18)
+        {
+            auto ToDelete = I;
+            if(BytesRemoved)
+                *BytesRemoved += getInstSizeInBytes(*ToDelete);
+            ++I;
+            MBB.erase(ToDelete);
+            NumRemoved++;
+        }
+    } while (I != MBB.begin());
+    return NumRemoved;
 }
 
-// /// InsertBranch - Insert branch code into the end of the specified
-// /// MachineBasicBlock.  The operands to this method are the same as those
-// /// returned by AnalyzeBranch.  This is only invoked in cases where
-// /// AnalyzeBranch returns success. It returns the number of instructions
-// /// inserted.
-// ///
-// /// It is also invoked by tail merging to add unconditional branches in
-// /// cases where AnalyzeBranch doesn't apply because there was no original
-// /// branch to analyze.  At least this much must be implemented, else tail
-// /// merging needs to be disabled.
+/// InsertBranch - Insert branch code into the end of the specified
+/// MachineBasicBlock.  The operands to this method are the same as those
+/// returned by AnalyzeBranch.  This is only invoked in cases where
+/// AnalyzeBranch returns success. It returns the number of instructions
+/// inserted.
+///
+/// It is also invoked by tail merging to add unconditional branches in
+/// cases where AnalyzeBranch doesn't apply because there was no original
+/// branch to analyze.  At least this much must be implemented, else tail
+/// merging needs to be disabled.
 unsigned TeakInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *TBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
-                                    const DebugLoc &DL, int *BytesAdded) const {
-  unsigned NumInserted = 0;
-  
-  //Insert any conditional branch.
-  if (Cond.size() > 0) {
-    BuildMI(MBB, MBB.end(), DL, get(Teak::BRCond_imm18)).addMBB(TBB).add(Cond[0]);
-    NumInserted++;
-  }
-  
-  // Insert any unconditional branch.
-  if (Cond.empty() || FBB) {
-    BuildMI(MBB, MBB.end(), DL, get(Teak::BR_imm18)).addMBB(Cond.empty() ? TBB : FBB);
-    NumInserted++;
-  }
-  return NumInserted;
+                                    const DebugLoc &DL, int *BytesAdded) const
+{
+    unsigned NumInserted = 0;
+    if(BytesAdded)
+        *BytesAdded = 0;
+    
+    //Insert any conditional branch.
+    if (Cond.size() > 0)
+    {
+        const MachineInstrBuilder& builder = BuildMI(MBB, MBB.end(), DL, get(Teak::BRRCond_rel7));
+        //if(Cond[0].getImm() != TeakCC::True)
+        //    builder.addUse(Teak::ICC, RegState::Implicit);
+        builder.addMBB(TBB)
+            .add(Cond[0]);
+            //.add(Cond[1]);
+            //.addReg(0);
+        NumInserted++;
+        if(BytesAdded)
+            *BytesAdded += 1;
+    }
+    
+    // Insert any unconditional branch.
+    if (Cond.empty() || FBB)
+    {
+        BuildMI(MBB, MBB.end(), DL, get(Teak::BRR_rel7))
+            .addMBB(Cond.empty() ? TBB : FBB);
+           // .addImm(TeakCC::True)
+            //.addReg(0);
+        NumInserted++;
+        if(BytesAdded)
+            *BytesAdded += 1;
+    }
+    return NumInserted;
 }
 
 bool TeakInstrInfo::reverseBranchCondition(SmallVectorImpl<MachineOperand> &Cond) const
@@ -200,6 +232,52 @@ bool TeakInstrInfo::reverseBranchCondition(SmallVectorImpl<MachineOperand> &Cond
     }
     Cond[0].setImm(CC);
     return false;
+}
+
+bool TeakInstrInfo::isBranchOffsetInRange(unsigned BranchOpc, int64_t BrOffset) const
+{
+    switch (BranchOpc)
+    {
+        default:
+            llvm_unreachable("unexpected opcode!");
+        case Teak::BR_imm18:
+        case Teak::CALL_imm18:
+            return true;
+        case Teak::BRR_rel7:
+        case Teak::BRRCond_rel7:
+        case Teak::CALLR_rel7:
+            return BrOffset >= -63 && BrOffset <= 64;
+    }
+}
+ 
+MachineBasicBlock* TeakInstrInfo::getBranchDestBlock(const MachineInstr &MI) const
+{
+    switch (MI.getOpcode())
+    {
+        default:
+            llvm_unreachable("unexpected opcode!");
+        case Teak::BR_imm18:
+        case Teak::BRR_rel7:
+        case Teak::BRRCond_rel7:
+        case Teak::CALL_imm18:
+        case Teak::CALLR_rel7:
+            return MI.getOperand(0).getMBB();
+    }
+}
+
+unsigned TeakInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB, MachineBasicBlock &NewDestBB,
+    const DebugLoc &DL, int64_t BrOffset, RegScavenger *RS) const
+{
+    auto& MI = *BuildMI(&MBB, DL, get(Teak::BR_imm18))
+        .addMBB(&NewDestBB)
+        .addImm(TeakCC::True)
+        .addReg(0);
+    return getInstSizeInBytes(MI);
+}
+
+unsigned TeakInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const
+{
+    return get(MI.getOpcode()).getSize() >> 1;
 }
 
 void TeakInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
@@ -356,6 +434,10 @@ bool TeakInstrInfo::PredicateInstruction(MachineInstr &MI, ArrayRef<MachineOpera
     {
         MachineOperand &PMO = MI.getOperand(PIdx);
         PMO.setImm(Pred[0].getImm());
+        if(Pred[0].getImm() == TeakCC::True)
+            MI.getOperand(PIdx + 1).ChangeToRegister(0, false);
+        else
+            MI.getOperand(PIdx + 1).ChangeToRegister(Teak::ICC, false, true);
         //MI.getOperand(PIdx+1).setReg(Pred[1].getReg());
         return true;
     }

@@ -50,21 +50,21 @@ public:
   }
 
   const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const override {
-    const static MCFixupKindInfo Infos[Teak::NumTargetFixupKinds] = {
-      // This table *must* be in the order that the fixup_* kinds are defined in
-      // TeakFixupKinds.h.
-      //
-      // Name                      Offset (bits) Size (bits)     Flags
-      { "fixup_teak_call_imm18", 0, 18, 0 },
-      { "fixup_teak_ptr_imm16", 0, 16, 0 },
+    const static MCFixupKindInfo Infos[Teak::NumTargetFixupKinds] =
+    {
+        // This table *must* be in the order that the fixup_* kinds are defined in
+        // TeakFixupKinds.h.
+        //
+        // Name                      Offset (bits) Size (bits)     Flags
+        { "fixup_teak_call_imm18", 0, 18, 0 },
+        { "fixup_teak_rel7", 0, 7, MCFixupKindInfo::FKF_IsPCRel },
+        { "fixup_teak_ptr_imm16", 0, 16, 0 },
     };
 
-    if (Kind < FirstTargetFixupKind) {
-      return MCAsmBackend::getFixupKindInfo(Kind);
-    }
+    if (Kind < FirstTargetFixupKind)
+        return MCAsmBackend::getFixupKindInfo(Kind);
 
-    assert(unsigned(Kind - FirstTargetFixupKind) < getNumFixupKinds() &&
-           "Invalid kind!");
+    assert(unsigned(Kind - FirstTargetFixupKind) < getNumFixupKinds() && "Invalid kind!");
     return Infos[Kind - FirstTargetFixupKind];
   }
 
@@ -125,6 +125,9 @@ void TeakAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
         case Teak::fixup_teak_call_imm18:
             write16le(&Data[Offset], (read16le(&Data[Offset]) & ~0x30) | (((Value >> 16) & 3) << 4));
             write16le(&Data[Offset + 2], Value & 0xFFFF);
+            break;
+        case Teak::fixup_teak_rel7:
+            write16le(&Data[Offset], (read16le(&Data[Offset]) & ~0x7F0) | ((((Value >> 1) - 1) & 0x7F) << 4));
             break;
         case Teak::fixup_teak_ptr_imm16:
             write16le(&Data[Offset + 2], Value);

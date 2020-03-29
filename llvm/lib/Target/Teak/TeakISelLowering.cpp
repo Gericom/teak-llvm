@@ -976,7 +976,7 @@ MachineBasicBlock* TeakTargetLowering::EmitInstrWithCustomInserter(MachineInstr 
 			llvm_unreachable("Unknown SELECT_CC!");
 		case Teak::SELECT_CC_Int_ICC:
 		case Teak::SELECT_CC_Int_ICC_i16:
-			return ExpandSelectCC(MI, BB, Teak::BRCond_imm18);
+			return ExpandSelectCC(MI, BB, Teak::BRRCond_rel7);
 	}
 }
 
@@ -1008,8 +1008,7 @@ MachineBasicBlock* TeakTargetLowering::ExpandSelectCC(MachineInstr &MI, MachineB
 	F->insert(It, SinkMBB);
 
 	// Transfer the remainder of ThisMBB and its successor edges to SinkMBB.
-	SinkMBB->splice(SinkMBB->begin(), ThisMBB,
-					std::next(MachineBasicBlock::iterator(MI)), ThisMBB->end());
+	SinkMBB->splice(SinkMBB->begin(), ThisMBB, std::next(MachineBasicBlock::iterator(MI)), ThisMBB->end());
 	SinkMBB->transferSuccessorsAndUpdatePHIs(ThisMBB);
 
 	// Set the new successors for ThisMBB.
@@ -1019,13 +1018,14 @@ MachineBasicBlock* TeakTargetLowering::ExpandSelectCC(MachineInstr &MI, MachineB
 	BuildMI(ThisMBB, dl, TII.get(BROpcode))
 		.addMBB(SinkMBB)
 		.addImm(CC);
+		//.addReg(Teak::ICC, RegState::Implicit);
+		//.addReg(Teak::ICC, RegState::Implicit);
 
 	// IfFalseMBB just falls through to SinkMBB.
 	IfFalseMBB->addSuccessor(SinkMBB);
 
 	// %Result = phi [ %TrueValue, ThisMBB ], [ %FalseValue, IfFalseMBB ]
-	BuildMI(*SinkMBB, SinkMBB->begin(), dl, TII.get(Teak::PHI),
-			MI.getOperand(0).getReg())
+	BuildMI(*SinkMBB, SinkMBB->begin(), dl, TII.get(Teak::PHI), MI.getOperand(0).getReg())
 		.addReg(MI.getOperand(1).getReg())
 		.addMBB(ThisMBB)
 		.addReg(MI.getOperand(2).getReg())

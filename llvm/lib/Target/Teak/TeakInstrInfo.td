@@ -89,6 +89,14 @@ def imm16_not_XFORM : SDNodeXForm<imm, [{
   return CurDAG->getTargetConstant((uint16_t)~N->getZExtValue(), SDLoc(N), MVT::i16);
 }]>;
 
+def immUpper16_XFORM : SDNodeXForm<imm, [{
+  return CurDAG->getTargetConstant((N->getZExtValue() >> 16) & 0xFFFF, SDLoc(N), MVT::i40);
+}]>;
+
+def immUpper16Signed_XFORM : SDNodeXForm<imm, [{
+  return CurDAG->getTargetConstant((N->getSExtValue() >> 16) & 0xFFFF, SDLoc(N), MVT::i40);
+}]>;
+
 //def ImmNot16AsmOperand_16: ImmAsmOperand<0,65535> { let Name = "Imm0_65535_16"; }
 def immNot16_16 : Operand<i16>, ImmLeaf<i16, [{
   return 1;//Imm >= 0 && Imm < 65536;
@@ -98,6 +106,18 @@ def immNot16_16 : Operand<i16>, ImmLeaf<i16, [{
 def immNot16 : Operand<i40>, ImmLeaf<i40, [{
   return ((~Imm) & 0xFFFFFF0000) == 0;// (~Imm) >= 0 && (~Imm) < 65536;
 }], imm16_not_XFORM>;
+
+def immUpper16 : Operand<i40>, ImmLeaf<i40, [{
+  return (Imm & 0xFFFF0000) == Imm;
+}], immUpper16_XFORM>;
+
+def immUpper16Signed : Operand<i40>, ImmLeaf<i40, [{
+  return ((int64_t)((int32_t)(Imm & 0xFFFF0000))) == Imm;
+}], immUpper16Signed_XFORM>;
+
+def imm32Signed : Operand<i40>, ImmLeaf<i40, [{
+  return (Imm & 0xFF80000000) == 0xFF80000000;
+}]>;
 
 def load_postinc : PatFrag<(ops node:$base),
                           (ld node:$base), [{
@@ -237,10 +257,12 @@ let Defs = [ICC] in
 
         def SET_imm16_regnob16 : InstTeakImm16<(outs RegNoBRegs16:$dst), (ins i16imm:$val, RegNoBRegs16:$a), "set $val, $a", [(set RegNoBRegs16:$dst, (TeakOr RegNoBRegs16:$a, imm:$val))]>;
         def SET_imm16_abl : InstTeakImm16<(outs ABRegs:$dst), (ins imm0_65535:$val, ABRegs:$a), "set $val, ${a}l", [(set ABRegs:$dst, (TeakOr ABRegs:$a, imm0_65535:$val))]>;
+        def SET_imm16_abh : InstTeakImm16<(outs ABRegs:$dst), (ins immUpper16:$val, ABRegs:$a), "set $val, ${a}h", [(set ABRegs:$dst, (TeakOr ABRegs:$a, immUpper16:$val))]>;
         def SET_imm16_sttmod : InstTeakImm16<(outs SttModRegs:$dst), (ins imm0_65535_16:$val, SttModRegs:$a), "set $val, $a", []>;
 
         def CHNG_imm16_regnob16 : InstTeakImm16<(outs RegNoBRegs16:$dst), (ins i16imm:$val, RegNoBRegs16:$a), "chng $val, $a", [(set RegNoBRegs16:$dst, (TeakXor RegNoBRegs16:$a, imm:$val))]>;
         def CHNG_imm16_abl : InstTeakImm16<(outs ABRegs:$dst), (ins imm0_65535:$val, ABRegs:$a), "chng $val, ${a}l", [(set ABRegs:$dst, (TeakXor ABRegs:$a, imm0_65535:$val))]>;
+        def CHNG_imm16_abh : InstTeakImm16<(outs ABRegs:$dst), (ins immUpper16:$val, ABRegs:$a), "chng $val, ${a}h", [(set ABRegs:$dst, (TeakXor ABRegs:$a, immUpper16:$val))]>;
         def CHNG_imm16_sttmod : InstTeakImm16<(outs SttModRegs:$dst), (ins imm0_65535_16:$val, SttModRegs:$a), "chng $val, $a", []>;
 
         let mayLoad = 1 in
@@ -276,12 +298,12 @@ let Defs = [ICC] in
         def MOV_imm16_regnob16 : InstTeakImm16<(outs RegNoBRegs16:$dst), (ins i16imm:$val), "mov $val, $dst", [(set RegNoBRegs16:$dst, imm:$val)]>;
         def MOV_imm16neg_ab : InstTeakImm16<(outs ABRegs:$dst), (ins immNeg32768_32767:$val), "mov $val, $dst", [(set ABRegs:$dst, immNeg32768_32767:$val)]>;
         def MOV_imm16_ab : InstTeakImm16<(outs ABRegs:$dst), (ins imm0_65535:$val), "mov $val, ${dst}l", [(set ABRegs:$dst, imm0_65535:$val)]>;
-        def MOV_imm16hi_ab : InstTeakImm16<(outs ABRegs:$dst), (ins imm0_65535:$val), "mov $val, ${dst}h", []>;
+        def MOV_imm16_abh : InstTeakImm16<(outs ABRegs:$dst), (ins immUpper16Signed:$val), "mov $val, ${dst}h", [(set ABRegs:$dst, immUpper16Signed:$val)]>;
     }
 
     let isMoveReg = 1 in
     {
-        let Constraints = "$dst != $src" in
+        let Constraints = "$dst != $src", Uses = [ICC] in
         def COPY_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$src, pred:$p), "copy $dst, $p", []>;
         def MOV_ab_ab : InstTeak<(outs ABRegs:$dst), (ins ABRegs:$src), "mov $src, $dst", [/*(set ABRegs:$dst, ABRegs:$src)*/]>;
         def MOV_regnobp016_regnob16 : InstTeak<(outs RegNoBRegs16:$dst), (ins RegNoBRegs16:$src), "mov $src, $dst", [/*(set RegNoBRegs16:$dst, RegNoBRegs16:$src)*/]>;
@@ -322,8 +344,20 @@ def HI16 : SDNodeXForm<imm,
     return CurDAG->getTargetConstant((unsigned)N->getZExtValue() >> 16, SDLoc(N), MVT::i40);
 }]>;
 
+// def UPPER16 : SDNodeXForm<imm,
+// [{
+//     return CurDAG->getTargetConstant(N->getZExtValue() & 0xFFFF0000, SDLoc(N), MVT::i40);
+// }]>;
+
+// def UPPER24 : SDNodeXForm<imm,
+// [{
+//     return CurDAG->getTargetConstant(N->getSExtValue() & ~0xFFFF, SDLoc(N), MVT::i40);
+// }]>;
+
 // Arbitrary immediates.
-def : Pat<(i40 imm:$val), (SET_imm16_abl (LO16 imm:$val), (MOV_imm16hi_ab (HI16 imm:$val)))>;
+def : Pat<(i40 imm32Signed:$val), (SET_imm16_abl (LO16 imm:$val), (MOV_imm16_abh (HI16 imm:$val)))>;
+def : Pat<(i40 imm:$val), (SET_imm16_abh (HI16 imm:$val), (MOV_imm16_ab (LO16 imm:$val)))>;
+// def : Pat<(i40 imm:$val), (SET_imm16_abl (LO16 imm:$val), (MOV_imm16hi_ab (HI16 imm:$val)))>;
 
 let mayStore = 1 in
 def MOV_al2_memimm16 : InstTeakImm16<(outs), (ins ALRegs:$a, Operand<i16>:$dstAddr), "mov ${a}, [$dstAddr]", [(store ALRegs:$a, imm:$dstAddr)]>;
@@ -468,13 +502,24 @@ let Uses = [ICC], usesCustomInserter = 1 in
 }
 
 let Uses = [ICC], isBranch = 1, isTerminator = 1 in
-def BRCond_imm18 : InstTeakImm16<(outs), (ins Operand<OtherVT>:$addr, CCOp:$cond), "br $addr, $cond", [(TeakBRICC bb:$addr, imm:$cond)]>;
+def BRRCond_rel7 : InstTeak<(outs), (ins Operand<OtherVT>:$addr, CCOp:$p), "br $addr, $p", [(TeakBRICC bb:$addr, imm:$p)]>;
+
+// let Uses = [ICC], isBranch = 1, isTerminator = 1 in
+// def BRCond_imm18 : InstTeakImm16<(outs), (ins Operand<OtherVT>:$addr, CCOp:$cond), "br $addr, $cond", [(TeakBRICC bb:$addr, imm:$cond)]>;
 
 let isBarrier = 1, isBranch = 1, isTerminator = 1 in
-def BR_imm18 : InstTeakImm16<(outs), (ins Operand<OtherVT>:$addr), "br $addr, always", [(br bb:$addr)]>;
+def BRR_rel7 : InstTeak<(outs), (ins Operand<OtherVT>:$addr), "brr $addr, always", [(br bb:$addr)]>;
 
-let isCall = 1, Defs = [SP], Uses = [SP] in 
-def CALL_imm : InstTeakImm16<(outs), (ins Operand<i40>:$addr, pred:$p), "call $addr, $p", [(teak_call tglobaladdr:$addr)]>;
+//def : Pat<(TeakBRICC bb:$addr, imm:$pred), (BRR_rel7 OtherVT:$addr, i40:$pred, i40:ICC)>;
+
+let isBranch = 1, isTerminator = 1 in
+def BR_imm18 : InstTeakImm16<(outs), (ins Operand<OtherVT>:$addr, pred:$p), "br $addr, $p", []>;
+
+let isCall = 1, Uses = [SP] in 
+def CALLR_rel7 : InstTeak<(outs), (ins Operand<i40>:$addr, pred:$p), "callr $addr, $p", []>;
+
+let isCall = 1, Uses = [SP] in 
+def CALL_imm18 : InstTeakImm16<(outs), (ins Operand<i40>:$addr, pred:$p), "call $addr, $p", [(teak_call tglobaladdr:$addr)]>;
 
 let isTerminator = 1, isReturn = 1, isBarrier = 1, Defs = [SP], Uses = [SP], mayLoad = 1 in
 def RET : InstTeak<(outs), (ins pred:$p), "ret $p",  [(TeakRetFlag)]>;

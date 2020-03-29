@@ -66,6 +66,12 @@ public:
 
   virtual bool reverseBranchCondition(SmallVectorImpl<MachineOperand> &Cond) const override;
 
+  virtual bool isBranchOffsetInRange(unsigned BranchOpc, int64_t BrOffset) const override;
+  virtual MachineBasicBlock* getBranchDestBlock(const MachineInstr &MI) const override;
+  virtual unsigned insertIndirectBranch(MachineBasicBlock &MBB, MachineBasicBlock &NewDestBB,
+      const DebugLoc &DL, int64_t BrOffset = 0, RegScavenger *RS = nullptr) const override;
+  virtual unsigned getInstSizeInBytes(const MachineInstr &MI) const override;
+
   virtual void copyPhysReg(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator I, const DebugLoc &DL,
                            MCRegister DestReg, MCRegister SrcReg,
