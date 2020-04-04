@@ -344,10 +344,10 @@ SDValue TeakTargetLowering::LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const
 	if(CC == ISD::SETULT || CC == ISD::SETULE || CC == ISD::SETUGT || CC == ISD::SETUGE)
 		unsgn = true;
 
-	if(LHS.getValueType() == MVT::i16 || LHS.getValueType() == MVT::i32)
+	if(LHS.getValueType() != MVT::i40)
 		LHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, LHS);
 
-	if(RHS.getValueType() == MVT::i16 || RHS.getValueType() == MVT::i32)
+	if(RHS.getValueType() != MVT::i40)
 		RHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, RHS);
 
 	SDValue CompareFlag;
@@ -382,10 +382,10 @@ SDValue TeakTargetLowering::LowerBR_CC(SDValue Op, SelectionDAG &DAG) const
 	if(CC == ISD::SETULT || CC == ISD::SETULE || CC == ISD::SETUGT || CC == ISD::SETUGE)
 		unsgn = true;
 
-	if(LHS.getValueType() == MVT::i16 || LHS.getValueType() == MVT::i32)
+	if(LHS.getValueType() != MVT::i40)
 		LHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, LHS);
 
-	if(RHS.getValueType() == MVT::i16 || RHS.getValueType() == MVT::i32)
+	if(RHS.getValueType() != MVT::i40)
 		RHS = DAG.getNode(unsgn ? ISD::ZERO_EXTEND : ISD::SIGN_EXTEND, dl, MVT::i40, RHS);
 
 	// Get the condition flag.
