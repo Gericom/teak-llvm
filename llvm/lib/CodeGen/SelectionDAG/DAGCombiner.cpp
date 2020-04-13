@@ -20851,9 +20851,9 @@ bool DAGCombiner::isAlias(SDNode *Op0, SDNode *Op1) const {
       int64_t Offset = 0;
       if (auto *C = dyn_cast<ConstantSDNode>(LSN->getOffset()))
         Offset = (LSN->getAddressingMode() == ISD::PRE_INC)
-                     ? C->getSExtValue()
+                     ? C->getSExtValue() << 1
                      : (LSN->getAddressingMode() == ISD::PRE_DEC)
-                           ? -1 * C->getSExtValue()
+                           ? -1 * C->getSExtValue() << 1
                            : 0;
       uint64_t Size =
           MemoryLocation::getSizeOrUnknown(LSN->getMemoryVT().getStoreSize());
@@ -20920,8 +20920,8 @@ bool DAGCombiner::isAlias(SDNode *Op0, SDNode *Op1) const {
   // alignment compared to the size and offset of the access, we may be able
   // to prove they do not alias. This check is conservative for now to catch
   // cases created by splitting vector types.
-  int64_t SrcValOffset0 = MUC0.MMO->getOffset();
-  int64_t SrcValOffset1 = MUC1.MMO->getOffset();
+  int64_t SrcValOffset0 = MUC0.MMO->getOffset() << 1;
+  int64_t SrcValOffset1 = MUC1.MMO->getOffset() << 1;
   unsigned OrigAlignment0 = MUC0.MMO->getBaseAlignment();
   unsigned OrigAlignment1 = MUC1.MMO->getBaseAlignment();
   if (OrigAlignment0 == OrigAlignment1 && SrcValOffset0 != SrcValOffset1 &&

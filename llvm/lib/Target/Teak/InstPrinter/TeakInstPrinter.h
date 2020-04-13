@@ -37,6 +37,7 @@ public:
 
 private:
   void printCondCode(const MCInst *MI, unsigned OpNum, raw_ostream &O);
+  void printMemR0425(const MCInst *MI, unsigned OpNum, raw_ostream &O);
   void printAddrModeMemSrc(const MCInst *MI, unsigned OpNum, raw_ostream &O);
   void printOperand(const MCInst *MI, unsigned OpNo, raw_ostream &O);
   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &O);

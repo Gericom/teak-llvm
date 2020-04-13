@@ -267,6 +267,21 @@ static unsigned encodeRnOp(unsigned reg)
     }
 }
 
+static unsigned encodeMemR0425Op(unsigned reg)
+{
+    switch (reg)
+    {
+        case Teak::R0: return 0;
+        case Teak::R4: return 1;
+        case Teak::R2: return 2;
+        case Teak::R5: return 3;
+        default:
+            dbgs() << "encodeMemR0425Op(" << reg << ")\n";
+            llvm_unreachable("Unsupported register");
+            break;
+    }
+}
+
 static unsigned encodeArArpSttModOp(unsigned reg)
 {
     switch (reg)
@@ -640,6 +655,12 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                 EmitConstant(0x1C00 | encodeRnOp(MI.getOperand(1).getReg()) | (step << 3) | (encodeRegisterOp(dstReg) << 5), 2, OS);
             break;
         }
+        case Teak::MOV_memr0425_ab:
+            EmitConstant(0x4BC0 | (encodeMemR0425Op(MI.getOperand(1).getReg()) << 2) | (encodeAbOp(MI.getOperand(0).getReg()) << 4), 2, OS);
+            break;
+        case Teak::MOV_ab_memr0425:
+            EmitConstant(0x4DC0 | (encodeMemR0425Op(MI.getOperand(1).getReg()) << 2) | (encodeAbOp(MI.getOperand(0).getReg()) << 4), 2, OS);
+            break;
         case Teak::MOV_r7offset7s_a:
             EmitConstant(0xD880 | (encodeAxOp(MI.getOperand(0).getReg()) << 8) | (MI.getOperand(2).getImm() & 0x7F), 2, OS);
             break;

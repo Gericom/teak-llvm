@@ -70,6 +70,28 @@ void TeakInstPrinter::printCondCode(const MCInst *MI, unsigned OpNum, raw_ostrea
     O << TeakCCondCodeToString((TeakCC::CondCodes)MI->getOperand(OpNum).getImm());
 }
 
+void TeakInstPrinter::printMemR0425(const MCInst *MI, unsigned OpNum, raw_ostream &O)
+{
+    const MCOperand& op = MI->getOperand(OpNum);
+    switch(op.getReg())
+    {
+        case Teak::R0:
+            O << "arrn0+ars0";
+            break;
+        case Teak::R4:
+            O << "arrn1+ars0";
+            break;
+        case Teak::R2:
+            O << "arrn2+ars0";
+            break;
+        case Teak::R5:
+            O << "arrn3+ars0";
+            break;
+        default:
+            llvm_unreachable("Invalid MemR0425 operand!");
+    }    
+}
+
 // Print a 'memsrc' operand which is a (Register, Offset) pair.
 void TeakInstPrinter::printAddrModeMemSrc(const MCInst *MI, unsigned OpNum, raw_ostream &O)
 {

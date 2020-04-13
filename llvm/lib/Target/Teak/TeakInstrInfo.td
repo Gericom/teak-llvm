@@ -152,6 +152,11 @@ def pred : PredicateOperand<OtherVT, (ops i32imm, i32imm), (ops (i32 0), (i32 ze
     let PrintMethod = "printCondCode";
 }
 
+def MemR0425 : RegisterOperand<RegR0425>
+{
+    let PrintMethod = "printMemR0425";
+}
+
 // // sext_inreg
 // def : Pat<(sext_inreg i16:$src, i8),
 //           (SEXT (i8 (EXTRACT_SUBREG i16:$src, sub_lo)))>;
@@ -396,6 +401,12 @@ def MOV_memrn_ab : InstTeak<(outs ABRegs:$dst), (ins GRRegs:$srcAddr), "mov [$sr
 let Defs = [ICC], mayLoad = 1 in
 def MOV_memrn_ab1 : InstTeak<(outs ABRegs:$dst), (ins GRRegs:$srcAddr), "mov [$srcAddr], ${dst}l", [(set ABRegs:$dst, (zextloadi16 GRRegs:$srcAddr))]>;
 
+let Defs = [ICC], mayLoad = 1 in
+def MOV_memr0425_ab : InstTeak<(outs ABRegs:$dst), (ins MemR0425:$srcAddr), "mov [$srcAddr], $dst", [(set ABRegs:$dst, (sextloadi32 MemR0425:$srcAddr))]>;
+
+let mayStore = 1 in
+def MOV_ab_memr0425 : InstTeak<(outs), (ins ABRegs:$src, MemR0425:$dstAddr), "mov $src, [$dstAddr]", [(truncstorei32 ABRegs:$src, MemR0425:$dstAddr)]>;
+
 // let mayStore = 1 in
 // def MOV_a_r7offset16 : InstTeak<
 //     (outs),
@@ -550,3 +561,5 @@ def : Pat<(i16 (TeakWrapper tglobaladdr:$dst)), (MOV_imm16_regnob16 tglobaladdr:
 def : Pat<(extloadi16 tglobaladdr:$srcAddr), (MOV_memimm16_a tglobaladdr:$srcAddr)>;
 def : Pat<(extloadi16 imm:$srcAddr), (MOV_memimm16_a imm:$srcAddr)>;
 def : Pat<(extloadi16 GRRegs:$srcAddr), (MOV_memrn_ab1 GRRegs:$srcAddr)>;
+
+def : Pat<(extloadi32 MemR0425:$srcAddr), (MOV_memr0425_ab MemR0425:$srcAddr)>;

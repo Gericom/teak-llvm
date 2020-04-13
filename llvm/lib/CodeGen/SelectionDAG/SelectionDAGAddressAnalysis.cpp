@@ -39,7 +39,7 @@ bool BaseIndexOffset::equalBaseIndex(const BaseIndexOffset &Other,
     if (auto *A = dyn_cast<GlobalAddressSDNode>(Base))
       if (auto *B = dyn_cast<GlobalAddressSDNode>(Other.Base))
         if (A->getGlobal() == B->getGlobal()) {
-          Off += B->getOffset() - A->getOffset();
+          Off += (B->getOffset() - A->getOffset()) << 1;
           return true;
         }
 
@@ -55,7 +55,7 @@ bool BaseIndexOffset::equalBaseIndex(const BaseIndexOffset &Other,
             IsMatch = A->getConstVal() == B->getConstVal();
         }
         if (IsMatch) {
-          Off += B->getOffset() - A->getOffset();
+          Off += (B->getOffset() - A->getOffset()) << 1;
           return true;
         }
       }
@@ -238,7 +238,7 @@ static BaseIndexOffset matchLSNode(const LSBaseSDNode *N,
     //          (i64 mul (i64 %induction_var)
     //                   (i64 %element_size)))
     if (Base->getOperand(1)->getOpcode() == ISD::MUL)
-      return BaseIndexOffset(Base, Index, Offset, IsIndexSignExt);
+      return BaseIndexOffset(Base, Index, Offset << 1, IsIndexSignExt);
 
     // Look at Base + Index + Offset cases.
     Index = Base->getOperand(1);
@@ -253,7 +253,7 @@ static BaseIndexOffset matchLSNode(const LSBaseSDNode *N,
     // Check if Index Offset pattern
     if (Index->getOpcode() != ISD::ADD ||
         !isa<ConstantSDNode>(Index->getOperand(1)))
-      return BaseIndexOffset(PotentialBase, Index, Offset, IsIndexSignExt);
+      return BaseIndexOffset(PotentialBase, Index, Offset << 1, IsIndexSignExt);
 
     Offset += cast<ConstantSDNode>(Index->getOperand(1))->getSExtValue();
     Index = Index->getOperand(0);
@@ -264,7 +264,7 @@ static BaseIndexOffset matchLSNode(const LSBaseSDNode *N,
       IsIndexSignExt = false;
     Base = PotentialBase;
   }
-  return BaseIndexOffset(Base, Index, Offset, IsIndexSignExt);
+  return BaseIndexOffset(Base, Index, Offset << 1, IsIndexSignExt);
 }
 
 BaseIndexOffset BaseIndexOffset::match(const SDNode *N,
@@ -273,7 +273,7 @@ BaseIndexOffset BaseIndexOffset::match(const SDNode *N,
     return matchLSNode(LS0, DAG);
   if (const auto *LN = dyn_cast<LifetimeSDNode>(N)) {
     if (LN->hasOffset())
-      return BaseIndexOffset(LN->getOperand(1), SDValue(), LN->getOffset(),
+      return BaseIndexOffset(LN->getOperand(1), SDValue(), LN->getOffset() << 1,
                              false);
     return BaseIndexOffset(LN->getOperand(1), SDValue(), false);
   }

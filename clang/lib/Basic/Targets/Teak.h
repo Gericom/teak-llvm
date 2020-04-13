@@ -33,7 +33,10 @@ public:
     PtrDiffType = SignedInt;
     IntPtrType = SignedInt;
     UseZeroLengthBitfieldAlignment = true;
-    resetDataLayout("e-m:e-P1-p0:16:16:16-p1:32:16:16-i1:16:16-i8:16:16-i16:16:16-i32:16:16-a:0:16-n16:40");
+    BoolWidth = 16;
+    BoolAlign = 16;
+    MinGlobalAlign = 16;
+    resetDataLayout("E-m:e-P1-p0:16:16:16-p1:32:32:32-i1:16:16-i8:16:16-i16:16:16-i32:32:32-a:0:32-n16:40");
   }
 
   void getTargetDefines(const LangOptions &Opts,

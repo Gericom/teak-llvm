@@ -30,7 +30,7 @@ static std::string computeDataLayout(const Triple &TT, StringRef CPU,
                                      const TargetOptions &Options) {
   // XXX Build the triple from the arguments.
   // This is hard-coded for now for this example target.
-  return "e-m:e-P1-p0:16:16:16-p1:32:16:16-i1:16:16-i8:16:16-i16:16:16-i32:16:16-a:0:16-n16:40";
+  return "E-m:e-P1-p0:16:16:16-p1:32:32:32-i1:16:16-i8:16:16-i16:16:16-i32:32:32-a:0:32-n16:40";
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {

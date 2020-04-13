@@ -189,6 +189,29 @@ TeakTargetLowering::TeakTargetLowering(const TeakTargetMachine &TeakTM)
 	// setOperationAction(ISD::CopyToReg, MVT::i32,  Custom);
 	// setOperationAction(ISD::CopyFromReg, MVT::i32,  Custom);
 	// setOperationAction(ISD::CopyToReg, MVT::i40,  Expand);
+
+	setLoadExtAction(ISD::ZEXTLOAD, MVT::i40, MVT::i32, Expand);
+
+	setLoadExtAction(ISD::EXTLOAD, MVT::i16, MVT::i1, Promote);
+	setLoadExtAction(ISD::EXTLOAD, MVT::i40, MVT::i1, Promote);
+	setLoadExtAction(ISD::EXTLOAD, MVT::i16, MVT::i8, Promote);
+	setLoadExtAction(ISD::EXTLOAD, MVT::i40, MVT::i8, Promote);
+	setLoadExtAction(ISD::ZEXTLOAD, MVT::i16, MVT::i1, Promote);
+	setLoadExtAction(ISD::ZEXTLOAD, MVT::i40, MVT::i1, Promote);
+	setLoadExtAction(ISD::ZEXTLOAD, MVT::i16, MVT::i8, Promote);
+	setLoadExtAction(ISD::ZEXTLOAD, MVT::i40, MVT::i8, Promote);
+	setLoadExtAction(ISD::SEXTLOAD, MVT::i16, MVT::i1, Promote);
+	setLoadExtAction(ISD::SEXTLOAD, MVT::i40, MVT::i1, Promote);
+	setLoadExtAction(ISD::SEXTLOAD, MVT::i16, MVT::i8, Promote);
+	setLoadExtAction(ISD::SEXTLOAD, MVT::i40, MVT::i8, Promote);
+
+	setTruncStoreAction(MVT::i40, MVT::i1, Expand);
+	setTruncStoreAction(MVT::i32, MVT::i1, Expand);
+	setTruncStoreAction(MVT::i16, MVT::i1, Expand);
+	setTruncStoreAction(MVT::i8, MVT::i1, Expand);
+	setTruncStoreAction(MVT::i40, MVT::i8, Expand);
+	setTruncStoreAction(MVT::i32, MVT::i8, Expand);
+	setTruncStoreAction(MVT::i16, MVT::i8, Expand);
 }
 
 // SDValue TeakTargetLowering::LowerSETCC(SDValue Op, SelectionDAG &DAG) const
@@ -437,7 +460,7 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
 			// 	dbgs() << "constant!\n";
 			// 	return Op;
 			// }
-			dbgs() << "Lowering!\n";
+			//dbgs() << "Lowering!\n";
 			SDValue NewOp0 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, N->getOperand(0));
 			SDValue NewOp1 = DAG.getNode(ISD::ANY_EXTEND, dl, MVT::i40, N->getOperand(1));
 			SDValue NewWOp = DAG.getNode(Op.getOpcode(), dl, MVT::i40, NewOp0, NewOp1);

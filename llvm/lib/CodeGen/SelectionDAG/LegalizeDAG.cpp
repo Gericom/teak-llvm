@@ -549,7 +549,7 @@ void SelectionDAGLegalize::LegalizeStoreOps(SDNode *Node) {
     // storing an integral number of bytes.  For example, promote
     // TRUNCSTORE:i1 X -> TRUNCSTORE:i8 (and X, 1)
     EVT NVT = EVT::getIntegerVT(*DAG.getContext(),
-                                StVT.getStoreSizeInBits());
+                                (StVT.getStoreSizeInBits() + 0xF) & ~0xF);
     Value = DAG.getZeroExtendInReg(Value, dl, StVT);
     SDValue Result =
         DAG.getTruncStore(Chain, dl, Value, Ptr, ST->getPointerInfo(), NVT,
@@ -738,7 +738,7 @@ void SelectionDAGLegalize::LegalizeLoadOps(SDNode *Node) {
          TargetLowering::Promote)) {
     // Promote to a byte-sized load if not loading an integral number of
     // bytes.  For example, promote EXTLOAD:i20 -> EXTLOAD:i24.
-    unsigned NewWidth = SrcVT.getStoreSizeInBits();
+    unsigned NewWidth = (SrcVT.getStoreSizeInBits() + 0xF) & ~0xF;
     EVT NVT = EVT::getIntegerVT(*DAG.getContext(), NewWidth);
     SDValue Ch;
 
