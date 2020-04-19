@@ -383,6 +383,9 @@ def MOV_memimm16_a : InstTeakImm16<(outs ARegs:$dst), (ins Operand<i16>:$srcAddr
 let mayStore = 1 in
 def MOV_regnob16_memrn : InstTeak<(outs), (ins RegNoBRegs16:$a, GRRegs:$dstAddr), "mov $a, [$dstAddr]", [(store RegNoBRegs16:$a, GRRegs:$dstAddr)]>;
 
+let mayStore = 1, Constraints = "$dstAddr = $dstAddrOut" in
+def MOV_regnob16_memrn_postdec : InstTeak<(outs GRRegs:$dstAddrOut), (ins RegNoBRegs16:$a, GRRegs:$dstAddr), "mov $a, [${dstAddr}--]", []>;
+
 let mayStore = 1 in
 def MOV_abl_memrn : InstTeak<(outs), (ins ABRegs:$a, GRRegs:$dstAddr), "mov ${a}l, [$dstAddr]", [(truncstorei16 ABRegs:$a, GRRegs:$dstAddr)]>;
 

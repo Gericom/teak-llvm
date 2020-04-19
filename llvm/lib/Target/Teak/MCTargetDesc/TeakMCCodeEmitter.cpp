@@ -614,15 +614,19 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             break;
         }
         case Teak::MOV_regnob16_memrn:
+        case Teak::MOV_regnob16_memrn_postdec:
         case Teak::MOV_abl_memrn:
         {
-            unsigned reg = MI.getOperand(0).getReg();
+            TeakStepZIDS::Steps step =
+                MI.getOpcode() == Teak::MOV_regnob16_memrn_postdec ? TeakStepZIDS::SubOne : TeakStepZIDS::Zero;
+            int opOffset = MI.getOpcode() == Teak::MOV_regnob16_memrn_postdec ? 1 : 0;
+            unsigned reg = MI.getOperand(opOffset).getReg();
             if(MI.getOpcode() == Teak::MOV_abl_memrn)
                 reg = teakGetAbLReg(reg);
             if(reg == Teak::R6)
-                EmitConstant(0x1B00 | encodeRnOp(MI.getOperand(1).getReg()), 2, OS);
+                EmitConstant(0x1B00 | encodeRnOp(MI.getOperand(opOffset + 1).getReg()) | (step << 3), 2, OS);
             else
-                EmitConstant(0x1800 | encodeRnOp(MI.getOperand(1).getReg()) | (encodeRegisterOp(reg) << 5), 2, OS);
+                EmitConstant(0x1800 | encodeRnOp(MI.getOperand(opOffset + 1).getReg()) | (step << 3) | (encodeRegisterOp(reg) << 5), 2, OS);
             break;
         }
         case Teak::MOV_memimm16_a:
