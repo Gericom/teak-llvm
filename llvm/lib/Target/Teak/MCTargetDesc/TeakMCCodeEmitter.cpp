@@ -132,10 +132,10 @@ static unsigned encodeRegisterOp(unsigned reg)
         case Teak::B1H: return 0x11;
         case Teak::B0L: return 0x12;
         case Teak::B1L: return 0x13;
-        //case Teak::EXT0: return 0x14;
-        //case Teak::EXT1: return 0x15;
-        //case Teak::EXT2: return 0x16;
-        //case Teak::EXT3: return 0x17;
+        case Teak::EXT0: return 0x14;
+        case Teak::EXT1: return 0x15;
+        case Teak::EXT2: return 0x16;
+        case Teak::EXT3: return 0x17;
         case Teak::A0: return 0x18;
         case Teak::A1: return 0x19;
         case Teak::A0L: return 0x1A;
@@ -175,10 +175,10 @@ static unsigned encodeRegisterP0Op(unsigned reg)
         case Teak::B1H: return 0x11;
         case Teak::B0L: return 0x12;
         case Teak::B1L: return 0x13;
-        //case Teak::EXT0: return 0x14;
-        //case Teak::EXT1: return 0x15;
-        //case Teak::EXT2: return 0x16;
-        //case Teak::EXT3: return 0x17;
+        case Teak::EXT0: return 0x14;
+        case Teak::EXT1: return 0x15;
+        case Teak::EXT2: return 0x16;
+        case Teak::EXT3: return 0x17;
         case Teak::A0: return 0x18;
         case Teak::A1: return 0x19;
         case Teak::A0L: return 0x1A;
@@ -235,6 +235,19 @@ static unsigned encodeAxlOp(unsigned reg)
     }
 }
 
+static unsigned encodeAxhOp(unsigned reg)
+{
+    switch (reg)
+    {
+        case Teak::A0H: return 0;
+        case Teak::A1H: return 1;
+        default:
+            dbgs() << "encodeAxhOp(" << reg << ")\n";
+            llvm_unreachable("Unsupported register");
+            break;
+    }
+}
+
 static unsigned encodeBxOp(unsigned reg)
 {
     switch (reg)
@@ -243,6 +256,53 @@ static unsigned encodeBxOp(unsigned reg)
         case Teak::B1: return 1;
         default:
             dbgs() << "encodeBxOp(" << reg << ")\n";
+            llvm_unreachable("Unsupported register");
+            break;
+    }
+}
+
+static unsigned encodeAbeOp(unsigned reg)
+{
+    switch (reg)
+    {
+        case Teak::B0E: return 0;
+        case Teak::B1E: return 1;
+        case Teak::A0E: return 2;
+        case Teak::A1E: return 3;
+        default:
+            dbgs() << "encodeAbeOp(" << reg << ")\n";
+            llvm_unreachable("Unsupported register");
+            break;
+    }  
+}
+
+static unsigned encodePxOp(unsigned reg)
+{
+    switch (reg)
+    {
+        case Teak::P0: return 0;
+        case Teak::P1: return 1;
+        default:
+            dbgs() << "encodePxOp(" << reg << ")\n";
+            llvm_unreachable("Unsupported register");
+            break;
+    }
+}
+
+static unsigned encodeR0123457Y0Op(unsigned reg)
+{
+    switch (reg)
+    {
+        case Teak::R0: return 0;
+        case Teak::R1: return 1;
+        case Teak::R2: return 2;
+        case Teak::R3: return 3;
+        case Teak::R4: return 4;
+        case Teak::R5: return 5;
+        case Teak::R7: return 6;
+        case Teak::Y0: return 7;
+        default:
+            dbgs() << "encodeR0123457Y0Op(" << reg << ")\n";
             llvm_unreachable("Unsupported register");
             break;
     }
@@ -377,6 +437,18 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::ADD_memrn_a:
             EmitConstant(0x8680 | encodeRnOp(MI.getOperand(1).getReg()) | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
             break;
+        case Teak::ADD_px_ab:
+        {
+            unsigned abReg = MI.getOperand(0).getReg();
+            unsigned pReg = MI.getOperand(1).getReg();
+            if (pReg == Teak::P0 && TeakMCRegisterClasses[Teak::ARegsRegClassID].contains(abReg))
+                EmitConstant(0x86A0 | encodeRegisterP0Op(pReg) | (encodeAxOp(abReg) << 8), 2, OS);
+            else if (pReg == Teak::P1 && TeakMCRegisterClasses[Teak::ARegsRegClassID].contains(abReg))
+                EmitConstant(0xD782 | encodeAxOp(abReg), 2, OS);
+            else
+                EmitConstant(0x5DF8 | (encodePxOp(pReg) << 1) | encodeBxOp(abReg), 2, OS);
+            break;
+        }
         case Teak::ADDL_memrn_a:
             EmitConstant(0x9480 | encodeRnOp(MI.getOperand(1).getReg()) | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
             break;
@@ -558,6 +630,18 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::INC_a:
             EmitConstant(0x67D0 | (encodeAxOp(MI.getOperand(0).getReg()) << 12) | MI.getOperand(2).getImm(), 2, OS);
             break;
+        case Teak::MODR_inc1:
+            EmitConstant(0x0080 | encodeRnOp(MI.getOperand(0).getReg()) | (TeakStepZIDS::AddOne << 3), 2, OS);
+            break;
+        case Teak::MODR_dec1:
+            EmitConstant(0x0080 | encodeRnOp(MI.getOperand(0).getReg()) | (TeakStepZIDS::SubOne << 3), 2, OS);
+            break;
+        case Teak::MODR_inc2:
+            EmitConstant(0x4990 | encodeRnOp(MI.getOperand(0).getReg()), 2, OS);
+            break;
+        case Teak::MODR_dec2:
+            EmitConstant(0x5DA0 | encodeRnOp(MI.getOperand(0).getReg()), 2, OS);
+            break;
         case Teak::MOV_imm16_regnob16:
         case Teak::MOV_imm16neg_ab:
         case Teak::MOV_imm16_ab:
@@ -583,6 +667,35 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             }
             break;
         }
+        case Teak::MOV_imm8s:
+        {
+            unsigned reg = MI.getOperand(0).getReg();
+            int64_t imm = MI.getOperand(1).getImm();
+            if (reg == Teak::A0H || reg == Teak::A1H)
+                EmitConstant(0x2500 | (encodeAxhOp(reg) << 12) | (imm & 0xFF), 2, OS);
+            else if (reg == Teak::EXT0)
+                EmitConstant(0x2900 | (imm & 0xFF), 2, OS);
+            else if (reg == Teak::EXT1)
+                EmitConstant(0x2D00 | (imm & 0xFF), 2, OS);
+            else if (reg == Teak::EXT2)
+                EmitConstant(0x3900 | (imm & 0xFF), 2, OS);
+            else if (reg == Teak::EXT3)
+                EmitConstant(0x3D00 | (imm & 0xFF), 2, OS);
+            else if (reg == Teak::R0 || reg == Teak::R1 || reg == Teak::R2 ||
+                reg == Teak::R3 || reg == Teak::R4 || reg == Teak::R5 ||
+                reg == Teak::R7 || reg == Teak::Y0)
+            {
+                EmitConstant(0x2300 | (encodeR0123457Y0Op(reg) << 10) | (imm & 0xFF), 2, OS);
+            }
+            else if(reg == Teak::SV)
+                EmitConstant(0x0500 | (imm & 0xFF), 2, OS);
+            else
+                llvm_unreachable("mov imm8s unsupported register");
+            break;
+        }
+        case Teak::MOV_imm8u:
+            EmitConstant(0x2100 | (encodeAxlOp(MI.getOperand(0).getReg()) << 12) | (MI.getOperand(1).getImm() & 0xFF), 2, OS);
+            break;
         case Teak::MOV_ab_ab:
             EmitConstant(0xD290 | (encodeAbOp(MI.getOperand(1).getReg()) << 10) | (encodeAbOp(MI.getOperand(0).getReg()) << 5), 2, OS);
             break;
@@ -590,11 +703,14 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::MOV_regnobp016_ab:
         case Teak::MOV_regnobp016_abl:
         case Teak::MOV_p0_ab:
-        case Teak::MOV_p0_regnob16:
         {
             unsigned dstReg = MI.getOperand(0).getReg();
             if(MI.getOpcode() == Teak::MOV_regnobp016_abl)
                 dstReg = teakGetAbLReg(dstReg);
+
+            if(MI.getOperand(1).getReg() == Teak::P0 && !TeakMCRegisterClasses[Teak::ABRegsRegClassID].contains(dstReg))
+                llvm_unreachable("Register P0 can only be moved to ABx!");
+
             if(MI.getOperand(1).getReg() == Teak::R6)
             {
                 if(TeakMCRegisterClasses[Teak::BRegsRegClassID].contains(dstReg))
@@ -614,12 +730,16 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             break;
         }
         case Teak::MOV_regnob16_memrn:
+        case Teak::MOV_regnob16_memrn_postinc:
         case Teak::MOV_regnob16_memrn_postdec:
         case Teak::MOV_abl_memrn:
         {
-            TeakStepZIDS::Steps step =
-                MI.getOpcode() == Teak::MOV_regnob16_memrn_postdec ? TeakStepZIDS::SubOne : TeakStepZIDS::Zero;
-            int opOffset = MI.getOpcode() == Teak::MOV_regnob16_memrn_postdec ? 1 : 0;
+             TeakStepZIDS::Steps step = TeakStepZIDS::Zero;
+            if (MI.getOpcode() == Teak::MOV_regnob16_memrn_postdec)
+                step = TeakStepZIDS::SubOne;
+            else if (MI.getOpcode() == Teak::MOV_regnob16_memrn_postinc)
+                step = TeakStepZIDS::AddOne;
+            int opOffset = step == TeakStepZIDS::Zero ? 0 : 1;
             unsigned reg = MI.getOperand(opOffset).getReg();
             if(MI.getOpcode() == Teak::MOV_abl_memrn)
                 reg = teakGetAbLReg(reg);
@@ -642,13 +762,17 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             break;
         }
         case Teak::MOV_memrn_regnob16:
+        case Teak::MOV_memrn_regnob16_postinc:
         case Teak::MOV_memrn_regnob16_postdec:
         case Teak::MOV_memrn_ab:
         case Teak::MOV_memrn_ab1:
         {
             unsigned dstReg = MI.getOperand(0).getReg();
-            TeakStepZIDS::Steps step =
-                MI.getOpcode() == Teak::MOV_memrn_regnob16_postdec ? TeakStepZIDS::SubOne : TeakStepZIDS::Zero;
+            TeakStepZIDS::Steps step = TeakStepZIDS::Zero;
+            if (MI.getOpcode() == Teak::MOV_memrn_regnob16_postdec)
+                step = TeakStepZIDS::SubOne;
+            else if (MI.getOpcode() == Teak::MOV_memrn_regnob16_postinc)
+                step = TeakStepZIDS::AddOne;
             if(MI.getOpcode() == Teak::MOV_memrn_ab1)
                 dstReg = teakGetAbLReg(dstReg);
             if(dstReg == Teak::R6)
@@ -693,6 +817,9 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             }
             break;
         }
+        case Teak::MPYI_y0_imm8s:
+            EmitConstant(0x0800 | (MI.getOperand(2).getImm() & 0xFF), 2, OS);
+            break;
         case Teak::MPY_y0_regnob16:
             if(MI.getOperand(2).getReg() == Teak::R6)
                 EmitConstant(0x5EA0, 2, OS);
@@ -701,6 +828,9 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             break;
         case Teak::NEG_a:
             EmitConstant(0x6790 | (encodeAxOp(MI.getOperand(0).getReg()) << 12) | MI.getOperand(2).getImm(), 2, OS);
+            break;
+        case Teak::NOP:
+            EmitConstant(0, 2, OS);
             break;
         case Teak::NOT_a:
             EmitConstant(0x6780 | (encodeAxOp(MI.getOperand(0).getReg()) << 12) | MI.getOperand(2).getImm(), 2, OS);
@@ -888,6 +1018,17 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
             EmitConstant(0x4980 | swapOp, 2, OS);
             break;
         }
+        case Teak::TST0_imm16_RegNoBRegs16:
+            if (MI.getOperand(1).getReg() == Teak::R6)
+                EmitConstant(0x47BC, 2, OS);
+            else
+                EmitConstant(0x89E0 | encodeRegisterOp(MI.getOperand(1).getReg()), 2, OS);
+            EmitConstant(MI.getOperand(0).getImm() & 0xFFFF, 2, OS);
+            break;
+        case Teak::TST0_imm16_memrn:
+            EmitConstant(0x88E0 | encodeRnOp(MI.getOperand(1).getReg()), 2, OS);
+            EmitConstant(MI.getOperand(0).getImm() & 0xFFFF, 2, OS);
+            break;
         case Teak::PUSH_regnob16:
         {
             unsigned reg = MI.getOperand(0).getReg();
@@ -902,6 +1043,9 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::PUSH_ararpsttmod:
             EmitConstant(0xD3D0 | encodeArArpSttModOp(MI.getOperand(0).getReg()), 2, OS);
             break;
+        case Teak::PUSH_abe:
+            EmitConstant(0xD7C8 | (encodeAbeOp(MI.getOperand(0).getReg()) << 1), 2, OS);
+            break;
         case Teak::POP_regnob16:
         {
             unsigned reg = MI.getOperand(0).getReg();
@@ -915,6 +1059,9 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         }
         case Teak::POP_ararpsttmod:
             EmitConstant(0x80C7 | (encodeArArpSttModOp(MI.getOperand(0).getReg()) << 8), 2, OS);
+            break;
+        case Teak::POP_abe:
+            EmitConstant(0x47B4 | encodeAbeOp(MI.getOperand(0).getReg()), 2, OS);
             break;
         case Teak::RET:
             EmitConstant(0x4580 | MI.getOperand(0).getImm(), 2, OS);

@@ -1,6 +1,11 @@
 include "TeakInstrFormats.td"
 include "TeakOperators.td"
 
+// An 'and' node with a single use.
+// def and_su : PatFrag<(ops node:$lhs, node:$rhs), (TeakAnd node:$lhs, node:$rhs), [{
+//   return N->hasOneUse();
+// }]>;
+
 //def : Pattern<(i32 (load_sym tglobaladdr:$addr)),  [(MOVi32 $addr)]>;
 
 // def MOVi32 : InstTeak<(outs BRegs:$dst), (ins i32imm:$src), "",
@@ -48,6 +53,13 @@ def Imm8u_16 : Operand<i16>, ImmLeaf<i16, [{
   return Imm >= 0 && Imm <= 255;
 }]> {
   let ParserMatchClass = Imm8u_16AsmOperand;
+}
+
+def Imm8s_16AsmOperand: ImmAsmOperand<-128,127> { let Name = "Imm8s_16"; }
+def Imm8s_16 : Operand<i16>, ImmLeaf<i16, [{
+  return Imm >= -128 && Imm <= 127;
+}]> {
+  let ParserMatchClass = Imm8s_16AsmOperand;
 }
 
 def Imm0_65535AsmOperand: ImmAsmOperand<0,65535> { let Name = "Imm0_65535"; }
@@ -147,6 +159,34 @@ def load_postdec : PatFrag<(ops node:$base),
     let IsNonExtLoad = 1;
 }
 
+def store_postinc : PatFrag<(ops node:$val, node:$base),
+                          (st node:$val, node:$base), [{
+  const StoreSDNode* st = cast<StoreSDNode>(N);
+	ISD::MemIndexedMode idxMode = st->getAddressingMode();
+  if (idxMode != ISD::POST_INC && idxMode != ISD::POST_DEC)
+      return false;
+  int offs = cast<ConstantSDNode>(st->getOffset())->getSExtValue();
+  return (idxMode == ISD::POST_INC && offs == 1) || (idxMode == ISD::POST_DEC && offs == -1);
+}]>{
+    let IsStore = 1;
+    let IsUnindexed = 0;
+    let IsTruncStore = 0;
+}
+
+def store_postdec : PatFrag<(ops node:$val, node:$base),
+                          (st node:$val, node:$base), [{
+  const StoreSDNode* st = cast<StoreSDNode>(N);
+	ISD::MemIndexedMode idxMode = st->getAddressingMode();
+  if (idxMode != ISD::POST_INC && idxMode != ISD::POST_DEC)
+      return false;
+  int offs = cast<ConstantSDNode>(st->getOffset())->getSExtValue();
+  return (idxMode == ISD::POST_INC && offs == -1) || (idxMode == ISD::POST_DEC && offs == 1);
+}]>{
+    let IsStore = 1;
+    let IsUnindexed = 0;
+    let IsTruncStore = 0;
+}
+
 def pred : PredicateOperand<OtherVT, (ops i32imm, i32imm), (ops (i32 0), (i32 zero_reg))>
 {
     let PrintMethod = "printCondCode";
@@ -168,53 +208,77 @@ def MemR0425 : RegisterOperand<RegR0425>
 //     "addv $val, [$addr]",
 //     [(store (add (load GRRegs:$addr), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
 
+def NOP : InstTeak<(outs), (ins), "nop", []>;
 
 let Defs = [ICC] in
 {
-    let isCommutable = 1, mayStore = 1, mayLoad = 1 in
-    def ADDV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767_16:$val, GRRegs:$addr), "addv $val, [$addr]", [(store (add (i16 (load GRRegs:$addr)), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+    let mayLoad = 1 in
+    def TST0_imm16_memrn : InstTeakImm16<(outs), (ins imm0_65535_16:$val, GRRegs:$addr), "tst0 $val, [$addr]", [(TeakCmpzICC (i40 (sext (TeakAnd (i16 (load GRRegs:$addr)), imm0_65535_16:$val))), 0)]>;
+
+    def TST0_imm16_RegNoBRegs16 : InstTeakImm16<(outs), (ins imm0_65535_16:$val, RegNoBRegs16:$a), "tst0 $val, $a", [(TeakCmpzICC (i40 (sext (TeakAnd RegNoBRegs16:$a, imm0_65535_16:$val))), 0)]>;
+
+    // let isCommutable = 1, mayStore = 1, mayLoad = 1 in
+    // def ADDV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767:$val, GRRegs:$addr), "addv $val, [$addr]", [(store (i16 (trunc (add (anyext (i16 (load GRRegs:$addr))), immNeg32768_32767:$val))), GRRegs:$addr)]>;
+
+    // let mayStore = 1, mayLoad = 1 in
+    // def SUBV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767:$val, GRRegs:$addr), "subv $val, [$addr]", [(store (i16 (trunc (sub (anyext (i16 (load GRRegs:$addr))), immNeg32768_32767:$val))), GRRegs:$addr)]>;
 
     let mayStore = 1, mayLoad = 1 in
-    def SUBV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767_16:$val, GRRegs:$addr), "subv $val, [$addr]", [(store (sub (i16 (load GRRegs:$addr)), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+    {
+        def ADDV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767_16:$val, GRRegs:$addr), "addv $val, [$addr]", [(store (add (i16 (load GRRegs:$addr)), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+        def SUBV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767_16:$val, GRRegs:$addr), "subv $val, [$addr]", [(store (sub (i16 (load GRRegs:$addr)), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+    }
 
-    let Constraints = "$dst = $a", isCommutable = 1 in
+    // let isCommutable = 1, mayStore = 1, mayLoad = 1 in
+    // def ADDV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767_16:$val, GRRegs:$addr), "addv $val, [$addr]", [(store (add (i16 (load GRRegs:$addr)), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+
+    // let mayStore = 1, mayLoad = 1 in
+    // def SUBV_imm16_memrn : InstTeakImm16<(outs), (ins immNeg32768_32767_16:$val, GRRegs:$addr), "subv $val, [$addr]", [(store (sub (i16 (load GRRegs:$addr)), immNeg32768_32767_16:$val), GRRegs:$addr)]>;
+
+    let Constraints = "$dst = $a" in
+    {
+        def MODR_inc1 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr [${a}++]", [(set GRRegs:$dst, (add GRRegs:$a, 1))]>;
+        def MODR_dec1 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr [${a}--]", [(set GRRegs:$dst, (add GRRegs:$a, -1))]>;
+        def MODR_inc2 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr ${a}, +2", [(set GRRegs:$dst, (add GRRegs:$a, 2))]>;
+        def MODR_dec2 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr ${a}, -2", [(set GRRegs:$dst, (add GRRegs:$a, -2))]>;
+    }
+
+    let Constraints = "$dst = $a" in
     def ADDV_imm16_RegNoBRegs16 : InstTeakImm16<(outs RegNoBRegs16:$dst), (ins immNeg32768_32767_16:$val, RegNoBRegs16:$a), "addv $val, $a", [(set RegNoBRegs16:$dst, (add RegNoBRegs16:$a, immNeg32768_32767_16:$val))]>;
+
+    // let Constraints = "$dst = $a", isCommutable = 1 in
+    // def ADDV_imm16_RegNoBRegs16 : InstTeakImm16<(outs RegNoBRegs16:$dst), (ins immNeg32768_32767:$val, RegNoBRegs16:$a), "addv $val, $a", [(set RegNoBRegs16:$dst, (trunc (add (anyext RegNoBRegs16:$a), immNeg32768_32767:$val)))]>;
 
     let Constraints = "$dst = $a" in
     def SUBV_imm16_RegNoBRegs16 : InstTeakImm16<(outs RegNoBRegs16:$dst), (ins immNeg32768_32767_16:$val, RegNoBRegs16:$a), "subv $val, $a", [(set RegNoBRegs16:$dst, (sub RegNoBRegs16:$a, immNeg32768_32767_16:$val))]>;
 
-    let Constraints = "$dst = $a", isCommutable = 1 in
-    def INC_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$a, pred:$p), "inc $a, $p", [(set ARegs:$dst, (add ARegs:$a, 1))]>;
-
-    let Constraints = "$dst = $a", isCommutable = 1 in
-    def DEC_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$a, pred:$p), "dec $a, $p", [(set ARegs:$dst, (add ARegs:$a, -1))]>;
-
-    let Constraints = "$dst = $a", isCommutable = 1 in
-    def RND_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$a, pred:$p), "rnd $a, $p", [(set ARegs:$dst, (add ARegs:$a, 0x8000))]>;
-
-    let Constraints = "$dst = $a", isCommutable = 1 in
-    def ADD_imm8u_a : InstTeak<(outs ARegs:$dst), (ins Imm8u:$val, ARegs:$a), "add ${val}u8, $a", [(set ARegs:$dst, (add ARegs:$a, Imm8u:$val))]>;
-
-    let Constraints = "$dst = $a", isCommutable = 1 in
-    def ADD_imm16_a : InstTeakImm16<(outs ARegs:$dst), (ins immNeg32768_32767:$val, ARegs:$a), "add $val, $a", [(set ARegs:$dst, (add ARegs:$a, immNeg32768_32767:$val))]>;
-
-    let Constraints = "$dst = $a", isCommutable = 1, mayLoad = 1 in
-    def ADD_memimm16_a : InstTeakImm16<(outs ARegs:$dst), (ins Operand<i16>:$addr, ARegs:$a), "add [$addr], $a", [(set ARegs:$dst, (add ARegs:$a, (sextloadi16 imm:$addr)))]>;
-
-    let Constraints = "$dst = $a", isCommutable = 1, mayLoad = 1 in
-    def ADD_memrn_a : InstTeak<(outs ARegs:$dst), (ins GRRegs:$addr, ARegs:$a), "add [$addr], $a", [(set ARegs:$dst, (add ARegs:$a, (sextloadi16 GRRegs:$addr)))]>;
-
-    let Constraints = "$dst = $a", mayLoad = 1 in
-    def ADDL_memrn_a : InstTeak<(outs ARegs:$dst), (ins GRRegs:$addr, ARegs:$a), "addl [$addr], $a", [(set ARegs:$dst, (add ARegs:$a, (zextloadi16 GRRegs:$addr)))]>;
+    // let Constraints = "$dst = $a" in
+    // def SUBV_imm16_RegNoBRegs16 : InstTeakImm16<(outs RegNoBRegs16:$dst), (ins immNeg32768_32767:$val, RegNoBRegs16:$a), "subv $val, $a", [(set RegNoBRegs16:$dst, (trunc (sub (anyext RegNoBRegs16:$a), immNeg32768_32767:$val)))]>;
 
     let Constraints = "$dst = $a" in
-    def ADD_regnobp016_a : InstTeak<(outs ARegs:$dst), (ins RegNoBRegs16:$nob, ARegs:$a), "add $nob, $a", [(set ARegs:$dst, (add ARegs:$a, (sext RegNoBRegs16:$nob)))]>;
+    {
+        def INC_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$a, pred:$p), "inc $a, $p", [(set ARegs:$dst, (add ARegs:$a, 1))]>;
+        def DEC_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$a, pred:$p), "dec $a, $p", [(set ARegs:$dst, (add ARegs:$a, -1))]>;
+        def RND_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$a, pred:$p), "rnd $a, $p", [(set ARegs:$dst, (add ARegs:$a, 0x8000))]>;
 
-    let Constraints = "$dst = $a" in
-    def ADDL_regnob16_a : InstTeak<(outs ARegs:$dst), (ins RegNoBRegs16:$nob, ARegs:$a), "addl $nob, $a", [(set ARegs:$dst, (add ARegs:$a, (zext RegNoBRegs16:$nob)))]>;
+        def ADD_imm8u_a : InstTeak<(outs ARegs:$dst), (ins Imm8u:$val, ARegs:$a), "add ${val}u8, $a", [(set ARegs:$dst, (add ARegs:$a, Imm8u:$val))]>;
+        def ADD_imm16_a : InstTeakImm16<(outs ARegs:$dst), (ins immNeg32768_32767:$val, ARegs:$a), "add $val, $a", [(set ARegs:$dst, (add ARegs:$a, immNeg32768_32767:$val))]>;
 
-    let Constraints = "$dst = $a", isCommutable = 1 in
-    def ADD_ab_ab : InstTeak<(outs ABRegs:$dst), (ins ABRegs:$b, ABRegs:$a), "add $b, $a", [(set ABRegs:$dst, (add ABRegs:$a, ABRegs:$b))]>;
+        let mayLoad = 1 in
+        {
+            def ADD_memimm16_a : InstTeakImm16<(outs ARegs:$dst), (ins Operand<i16>:$addr, ARegs:$a), "add [$addr], $a", [(set ARegs:$dst, (add ARegs:$a, (sextloadi16 imm:$addr)))]>;
+            def ADD_memrn_a : InstTeak<(outs ARegs:$dst), (ins GRRegs:$addr, ARegs:$a), "add [$addr], $a", [(set ARegs:$dst, (add ARegs:$a, (sextloadi16 GRRegs:$addr)))]>;
+            def ADDL_memrn_a : InstTeak<(outs ARegs:$dst), (ins GRRegs:$addr, ARegs:$a), "addl [$addr], $a", [(set ARegs:$dst, (add ARegs:$a, (zextloadi16 GRRegs:$addr)))]>;
+        }
+
+        def ADD_regnobp016_a : InstTeak<(outs ARegs:$dst), (ins RegNoBRegs16:$nob, ARegs:$a), "add $nob, $a", [(set ARegs:$dst, (add ARegs:$a, (sext RegNoBRegs16:$nob)))]>;
+        def ADDL_regnob16_a : InstTeak<(outs ARegs:$dst), (ins RegNoBRegs16:$nob, ARegs:$a), "addl $nob, $a", [(set ARegs:$dst, (add ARegs:$a, (zext RegNoBRegs16:$nob)))]>;
+
+        let isCommutable = 1 in
+        def ADD_ab_ab : InstTeak<(outs ABRegs:$dst), (ins ABRegs:$b, ABRegs:$a), "add $b, $a", [(set ABRegs:$dst, (add ABRegs:$a, ABRegs:$b))]>;
+
+        def ADD_px_ab : InstTeak<(outs ABRegs:$dst), (ins PRegs:$b, ABRegs:$a), "add $b, $a", []>;
+    }
 
     //this does not give the expected result, it is actually
     //a = a & (0xFF00 | val)
@@ -290,11 +354,15 @@ let Defs = [ICC] in
         def XOR_imm16_a : InstTeakImm16<(outs ARegs:$dst), (ins imm0_65535:$val, ARegs:$a), "xor $val, $a", [(set ARegs:$dst, (TeakXor ARegs:$a, imm0_65535:$val))]>;
         def XOR_regnobp016_a : InstTeak<(outs ARegs:$dst), (ins RegNoBRegs16:$b, ARegs:$a), "xor $b, $a", [(set ARegs:$dst, (TeakXor ARegs:$a, (zext RegNoBRegs16:$b)))]>;
         // def XOR_regnobp016_al : InstTeak<(outs ALRegs:$dst), (ins RegNoBRegs16:$b, ALRegs:$a), "xor $b, $a", [(set ALRegs:$dst, (TeakXor ALRegs:$a, RegNoBRegs16:$b))]>;
+        let isCommutable = 1 in
         def XOR_a_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$b, ARegs:$a), "xor $b, $a", [(set ARegs:$dst, (TeakXor ARegs:$a, ARegs:$b))]>;
     }
 
-    def AND_ab_ab_a : InstTeak<(outs ARegs:$dst), (ins ABRegs:$b, ABRegs:$a), "and $b, $a, $dst", [(set ARegs:$dst, (TeakAnd ABRegs:$a, ABRegs:$b))]>;
-    def OR_ab_ab_a  : InstTeak<(outs ARegs:$dst), (ins ABRegs:$b, ABRegs:$a), "or $b, $a, $dst",  [(set ARegs:$dst, (TeakOr  ABRegs:$a, ABRegs:$b))]>;
+    let isCommutable = 1 in
+    {
+        def AND_ab_ab_a : InstTeak<(outs ARegs:$dst), (ins ABRegs:$b, ABRegs:$a), "and $b, $a, $dst", [(set ARegs:$dst, (TeakAnd ABRegs:$a, ABRegs:$b))]>;
+        def OR_ab_ab_a  : InstTeak<(outs ARegs:$dst), (ins ABRegs:$b, ABRegs:$a), "or $b, $a, $dst",  [(set ARegs:$dst, (TeakOr  ABRegs:$a, ABRegs:$b))]>;
+    }
 
     let isMoveImm = 1 in
     {        
@@ -304,6 +372,8 @@ let Defs = [ICC] in
         def MOV_imm16neg_ab : InstTeakImm16<(outs ABRegs:$dst), (ins immNeg32768_32767:$val), "mov $val, $dst", [(set ABRegs:$dst, immNeg32768_32767:$val)]>;
         def MOV_imm16_ab : InstTeakImm16<(outs ABRegs:$dst), (ins imm0_65535:$val), "mov $val, ${dst}l", [(set ABRegs:$dst, imm0_65535:$val)]>;
         def MOV_imm16_abh : InstTeakImm16<(outs ABRegs:$dst), (ins immUpper16Signed:$val), "mov $val, ${dst}h", [(set ABRegs:$dst, immUpper16Signed:$val)]>;
+        def MOV_imm8s : InstTeak<(outs MovImm8sRegs:$dst), (ins Imm8s_16:$val), "mov ${val}s8, $dst", []>;
+        def MOV_imm8u : InstTeak<(outs ALRegs:$dst), (ins Imm8u_16:$val), "mov ${val}u8, $dst", []>;
     }
 
     let isMoveReg = 1 in
@@ -312,7 +382,7 @@ let Defs = [ICC] in
         def COPY_a : InstTeak<(outs ARegs:$dst), (ins ARegs:$src, pred:$p), "copy $dst, $p", []>;
         def MOV_ab_ab : InstTeak<(outs ABRegs:$dst), (ins ABRegs:$src), "mov $src, $dst", [/*(set ABRegs:$dst, ABRegs:$src)*/]>;
         def MOV_regnobp016_regnob16 : InstTeak<(outs RegNoBRegs16:$dst), (ins RegNoBRegs16:$src), "mov $src, $dst", [/*(set RegNoBRegs16:$dst, RegNoBRegs16:$src)*/]>;
-        def MOV_p0_regnob16 : InstTeak<(outs RegNoBRegs16:$dst), (ins P0Regs:$src), "mov $src, $dst", [/*(set RegNoBRegs16:$dst, RegNoBRegs16:$src)*/]>;
+        //def MOV_p0_regnob16 : InstTeak<(outs RegNoBRegs16:$dst), (ins P0Regs:$src), "mov $src, $dst", [/*(set RegNoBRegs16:$dst, RegNoBRegs16:$src)*/]>;
         def MOV_regnobp016_ab : InstTeak<(outs ABRegs:$dst), (ins RegNoBRegs16:$src), "mov $src, $dst", [(set ABRegs:$dst, (sext RegNoBRegs16:$src))]>;
         def MOV_p0_ab : InstTeak<(outs ABRegs:$dst), (ins P0Regs:$src), "mov $src, $dst", [/*(set ABRegs:$dst, (sext P0Regs:$src))*/]>;
         def MOV_regnobp016_abl : InstTeak<(outs ABRegs:$dst), (ins RegNoBRegs16:$src), "mov $src, ${dst}l", [(set ABRegs:$dst, (zext RegNoBRegs16:$src))]>;
@@ -323,10 +393,20 @@ let Defs = [ICC] in
     def SHFC_arith_ab_ab_sv : InstTeak<(outs ABRegs:$dst), (ins ABRegs:$src, SVReg:$shift, pred:$p), "shfc $src, $dst, $p", [(set ABRegs:$dst, (TeakShiftArith ABRegs:$src, SVReg:$shift))]>;
     def SHFC_logic_ab_ab_sv : TeakPseudoInst<(outs ABRegs:$dst), (ins ABRegs:$src, SVReg:$shift, pred:$p), "shfc $src, $dst, $p", [(set ABRegs:$dst, (TeakShiftLogic ABRegs:$src, SVReg:$shift))]>;
 
-    def MPY_y0_regnob16 : InstTeak<(outs P0Regs:$p), (ins Y0Regs:$y, RegNoBRegs16:$x), "mpy $y, $x", []>;
+    let Defs = [ICC, X0, P0] in
+    {
+        def MPYI_y0_imm8s : InstTeak<(outs P0Regs:$p), (ins Y0Regs:$y, Imm8s_16:$x), "mpyi $y, $x", []>;
+        def MPY_y0_regnob16 : InstTeak<(outs P0Regs:$p), (ins Y0Regs:$y, RegNoBRegs16:$x), "mpy $y, $x", []>;
 
-    let Defs = [ICC, P0] in
-    def MPY_y0_regnob16_RegNoBRegs16 : TeakPseudoInst<(outs RegNoBRegs16:$dst), (ins Y0Regs:$y, RegNoBRegs16:$x), "mpy $y, $x", [(set RegNoBRegs16:$dst, (mul RegNoBRegs16:$x, Y0Regs:$y))]>;
+        let Constraints = "$dst = $ab" in
+        {
+            def MPYI_y0_imm8s_ab_ADD : TeakPseudoInst<(outs ABRegs:$dst), (ins Y0Regs:$y, Imm8s_16:$x, ABRegs:$ab), "MPYI_y0_imm8s_ab $y, $x, $ab", [(set ABRegs:$dst, (add ABRegs:$ab, (TeakMpy Y0Regs:$y, Imm8s_16:$x)))]>;
+            def MPY_y0_regnob16_ab_ADD : TeakPseudoInst<(outs ABRegs:$dst), (ins Y0Regs:$y, RegNoBRegs16:$x, ABRegs:$ab), "MPY_y0_regnob16_ab_ADD $y, $x, $ab", [(set ABRegs:$dst, (add ABRegs:$ab, (TeakMpy RegNoBRegs16:$x, Y0Regs:$y)))]>;
+        }        
+
+        def MPYI_y0_imm8s_ab : TeakPseudoInst<(outs ABRegs:$dst), (ins Y0Regs:$y, Imm8s_16:$x), "MPYI_y0_imm8s_ab $y, $x, $dst", [(set ABRegs:$dst, (TeakMpy Y0Regs:$y, Imm8s_16:$x))]>;
+        def MPY_y0_regnob16_ab : TeakPseudoInst<(outs ABRegs:$dst), (ins Y0Regs:$y, RegNoBRegs16:$x), "MPY_y0_regnob16_ab $y, $x, $dst", [(set ABRegs:$dst, (TeakMpy RegNoBRegs16:$x, Y0Regs:$y))]>;
+    }
 
     let Constraints = "$asrc = $bdst, $bsrc = $adst" in
     def SWAP_ab : InstTeak<(outs BRegs:$adst, ARegs:$bdst), (ins ARegs:$asrc, BRegs:$bsrc), "swap ($asrc, $bsrc)", []>;
@@ -384,7 +464,10 @@ let mayStore = 1 in
 def MOV_regnob16_memrn : InstTeak<(outs), (ins RegNoBRegs16:$a, GRRegs:$dstAddr), "mov $a, [$dstAddr]", [(store RegNoBRegs16:$a, GRRegs:$dstAddr)]>;
 
 let mayStore = 1, Constraints = "$dstAddr = $dstAddrOut" in
-def MOV_regnob16_memrn_postdec : InstTeak<(outs GRRegs:$dstAddrOut), (ins RegNoBRegs16:$a, GRRegs:$dstAddr), "mov $a, [${dstAddr}--]", []>;
+def MOV_regnob16_memrn_postinc : InstTeak<(outs GRRegs:$dstAddrOut), (ins RegNoBRegs16:$a, GRRegs:$dstAddr), "mov $a, [${dstAddr}++]", [(set GRRegs:$dstAddrOut, (store_postinc RegNoBRegs16:$a, GRRegs:$dstAddr))]>;
+
+let mayStore = 1, Constraints = "$dstAddr = $dstAddrOut" in
+def MOV_regnob16_memrn_postdec : InstTeak<(outs GRRegs:$dstAddrOut), (ins RegNoBRegs16:$a, GRRegs:$dstAddr), "mov $a, [${dstAddr}--]", [(set GRRegs:$dstAddrOut, (store_postdec RegNoBRegs16:$a, GRRegs:$dstAddr))]>;
 
 let mayStore = 1 in
 def MOV_abl_memrn : InstTeak<(outs), (ins ABRegs:$a, GRRegs:$dstAddr), "mov ${a}l, [$dstAddr]", [(truncstorei16 ABRegs:$a, GRRegs:$dstAddr)]>;
@@ -392,8 +475,8 @@ def MOV_abl_memrn : InstTeak<(outs), (ins ABRegs:$a, GRRegs:$dstAddr), "mov ${a}
 let Defs = [ICC], mayLoad = 1 in
 def MOV_memrn_regnob16 : InstTeak<(outs RegNoBRegs16_nolh:$dst), (ins GRRegs:$srcAddr), "mov [$srcAddr], $dst", [(set RegNoBRegs16_nolh:$dst, (load GRRegs:$srcAddr))]>;
 
-// let Defs = [ICC], mayLoad = 1, Constraints = "$srcAddr = $srcAddrOut" in
-// def MOV_memrn_regnob16_postinc : InstTeak<(outs RegNoBRegs16_nolh:$dst, GRRegs:$srcAddrOut), (ins GRRegs:$srcAddr), "mov [${srcAddr}++], $dst", [(set RegNoBRegs16_nolh:$dst, GRRegs:$srcAddrOut, (load_postinc GRRegs:$srcAddr))]>;
+let Defs = [ICC], mayLoad = 1, Constraints = "$srcAddr = $srcAddrOut" in
+def MOV_memrn_regnob16_postinc : InstTeak<(outs RegNoBRegs16_nolh:$dst, GRRegs:$srcAddrOut), (ins GRRegs:$srcAddr), "mov [${srcAddr}++], $dst", [(set RegNoBRegs16_nolh:$dst, GRRegs:$srcAddrOut, (load_postinc GRRegs:$srcAddr))]>;
 
 let Defs = [ICC], mayLoad = 1, Constraints = "$srcAddr = $srcAddrOut" in
 def MOV_memrn_regnob16_postdec : InstTeak<(outs RegNoBRegs16_nolh:$dst, GRRegs:$srcAddrOut), (ins GRRegs:$srcAddr), "mov [${srcAddr}--], $dst", [(set RegNoBRegs16_nolh:$dst, GRRegs:$srcAddrOut, (load_postdec GRRegs:$srcAddr))]>;
@@ -479,32 +562,44 @@ let Defs = [SP], Uses = [SP] in
         def PUSH_regnob16 : InstTeak<(outs), (ins RegNoBRegs16:$reg), "push $reg", []>;
         //def PUSH_px : InstTeak<(outs), (ins PRegs:$reg), "push $reg", []>;
         def PUSH_ararpsttmod : InstTeak<(outs), (ins ArArpSttMod:$reg), "push $reg", []>;
+        def PUSH_abe : InstTeak<(outs), (ins ABERegs:$reg), "push $reg", []>;
     }
     let Defs = [SP, ICC], mayLoad = 1 in
     {
         def POP_regnob16 : InstTeak<(outs RegNoBRegs16_nolh:$reg), (ins), "pop $reg", []>;
         //def POP_px : InstTeak<(outs PRegs:$reg), (ins), "pop $reg", []>;
         def POP_ararpsttmod : InstTeak<(outs ArArpSttMod:$reg), (ins), "pop $reg", []>;
+        def POP_abe : InstTeak<(outs ABERegs:$reg), (ins), "pop $reg", []>;
     }
 }
 
 let isCompare = 1, Defs = [ICC] in
 {
-    def CMP_imm8u_a             : InstTeak     <(outs), (ins Imm8u:$val,             ARegs:$a),        "cmp ${val}u8, $a", [(TeakCmpICC ARegs:$a,               Imm8u:$val)]>;
-    def CMP_imm16_a             : InstTeakImm16<(outs), (ins immNeg32768_32767:$val, ARegs:$a),        "cmp $val, $a",     [(TeakCmpICC ARegs:$a,               immNeg32768_32767:$val)]>;
+    def CMP_imm8u_a : InstTeak <(outs), (ins Imm8u:$val, ARegs:$a), "cmp ${val}u8, $a", [(TeakCmpICC ARegs:$a, Imm8u:$val)]>;
+    def CMP_imm16_a : InstTeakImm16<(outs), (ins immNeg32768_32767:$val, ARegs:$a), "cmp $val, $a", [(TeakCmpICC ARegs:$a, immNeg32768_32767:$val)]>;
     def CMPV_imm16_RegNoBRegs16 : InstTeakImm16<(outs), (ins immNeg32768_32767:$val, RegNoBRegs16:$a), "cmpv $val, $a",    [(TeakCmpICC (sext RegNoBRegs16:$a), immNeg32768_32767:$val)]>;
-    
+
     let mayLoad = 1 in
     {
         def CMP_memimm16_a  : InstTeakImm16<(outs), (ins Operand<i16>:$addr, ARegs:$a), "cmp [$addr], $a",  [(TeakCmpICC ARegs:$a, (sextloadi16 imm:$addr))]>;
-        def CMP_memrn_a  : InstTeak<(outs), (ins GRRegs:$addr, ARegs:$a), "cmp [$addr], $a",  [(TeakCmpICC ARegs:$a, (sextloadi16 GRRegs:$addr))]>;
+        def CMP_memrn_a  : InstTeak<(outs), (ins GRRegs:$addr, ARegs:$a), "cmp [$addr], $a",  [(TeakCmpICC ARegs:$a, (sextloadi16 GRRegs:$addr))]>;        
         def CMPU_memrn_a : InstTeak<(outs), (ins GRRegs:$addr, ARegs:$a), "cmpu [$addr], $a", [(TeakCmpICC ARegs:$a, (zextloadi16 GRRegs:$addr))]>;
     }
 
     def CMP_regnobp016_a : InstTeak<(outs), (ins RegNoBRegs16:$b,  ARegs:$a),  "cmp $b, $a",  [(TeakCmpICC ARegs:$a,  (sext RegNoBRegs16:$b))]>;
     def CMPU_regnob016_a : InstTeak<(outs), (ins RegNoBRegs16:$b,  ARegs:$a),  "cmpu $b, $a", [(TeakCmpICC ARegs:$a,  (zext RegNoBRegs16:$b))]>;
-    def CMP_ab_ab        : InstTeak<(outs), (ins ABRegs:$b,        ABRegs:$a), "cmp $b, $a",  [(TeakCmpICC ABRegs:$a, ABRegs:$b)]>;
+    def CMP_ab_ab : InstTeak<(outs), (ins ABRegs:$b, ABRegs:$a), "cmp $b, $a", [(TeakCmpICC ABRegs:$a, ABRegs:$b)]>;
 }
+
+def : Pat<(TeakCmpzICC ARegs:$a, Imm8u:$val), (CMP_imm8u_a Imm8u:$val, ARegs:$a)>;
+def : Pat<(TeakCmpzICC ARegs:$a, immNeg32768_32767:$val), (CMP_imm16_a immNeg32768_32767:$val, ARegs:$a)>;
+def : Pat<(TeakCmpzICC (sext RegNoBRegs16:$a), immNeg32768_32767:$val), (CMPV_imm16_RegNoBRegs16 immNeg32768_32767:$val, RegNoBRegs16:$a)>;
+def : Pat<(TeakCmpzICC ARegs:$a, (sextloadi16 imm:$addr)), (CMP_memimm16_a imm:$addr, ARegs:$a)>;
+def : Pat<(TeakCmpzICC ARegs:$a, (sextloadi16 GRRegs:$addr)), (CMP_memrn_a GRRegs:$addr, ARegs:$a)>;
+def : Pat<(TeakCmpzICC ARegs:$a, (zextloadi16 GRRegs:$addr)), (CMPU_memrn_a GRRegs:$addr, ARegs:$a)>;
+def : Pat<(TeakCmpzICC ARegs:$a, (sext RegNoBRegs16:$b)), (CMP_regnobp016_a RegNoBRegs16:$b, ARegs:$a)>;
+def : Pat<(TeakCmpzICC ARegs:$a,  (zext RegNoBRegs16:$b)), (CMPU_regnob016_a RegNoBRegs16:$b, ARegs:$a)>;
+def : Pat<(TeakCmpzICC ABRegs:$a, ABRegs:$b), (CMP_ab_ab ABRegs:$b, ABRegs:$a)>;
 
 let Uses = [ICC], usesCustomInserter = 1 in
 {
@@ -555,6 +650,7 @@ def : Pat<(i40 (TeakOr ARegs:$a, (extloadi16 (TeakWrapper tglobaladdr:$src)))), 
 def : Pat<(i40 (TeakXor ARegs:$a, (zextloadi16 (TeakWrapper tglobaladdr:$src)))), (XOR_memimm16_a tglobaladdr:$src, ARegs:$a)>;
 def : Pat<(i40 (TeakXor ARegs:$a, (extloadi16 (TeakWrapper tglobaladdr:$src)))), (XOR_memimm16_a tglobaladdr:$src, ARegs:$a)>;
 def : Pat<(TeakCmpICC ARegs:$a, (i40 (sextloadi16 (TeakWrapper tglobaladdr:$src)))), (CMP_memimm16_a tglobaladdr:$src, ARegs:$a)>;
+def : Pat<(TeakCmpzICC ARegs:$a, (i40 (sextloadi16 (TeakWrapper tglobaladdr:$src)))), (CMP_memimm16_a tglobaladdr:$src, ARegs:$a)>;
 def : Pat<(store ALRegs:$src, (i16 (TeakWrapper tglobaladdr:$dst))), (MOV_al2_memimm16 ALRegs:$src, tglobaladdr:$dst)>;
 def : Pat<(truncstorei16 ARegs:$src, (i16 (TeakWrapper tglobaladdr:$dst))), (MOV_al_memimm16 ARegs:$src, tglobaladdr:$dst)>;
 def : Pat<(i40 (sextloadi16 (TeakWrapper tglobaladdr:$src))), (MOV_memimm16_a tglobaladdr:$src)>;

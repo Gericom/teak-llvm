@@ -72,6 +72,8 @@ public:
                                      unsigned DstSubReg,
                                      const TargetRegisterClass *NewRC,
                                      LiveIntervals &LIS) const override;
+
+  virtual const TargetRegisterClass* getCrossCopyRegClass(const TargetRegisterClass* RC) const override;
 };
 
 } // end namespace llvm

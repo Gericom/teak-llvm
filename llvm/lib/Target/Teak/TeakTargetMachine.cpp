@@ -70,11 +70,16 @@ public:
 };
 } // namespace
 
-TargetPassConfig *TeakTargetMachine::createPassConfig(PassManagerBase &PM) {
-  return new TeakPassConfig(*this, PM);
+TargetPassConfig *TeakTargetMachine::createPassConfig(PassManagerBase &PM) 
+{
+    return new TeakPassConfig(*this, PM);
 }
 
-bool TeakPassConfig::addPreISel() { return false; }
+bool TeakPassConfig::addPreISel() 
+{ 
+    addPass(createHardwareLoopsPass());
+    return false;
+}
 
 void TeakPassConfig::addPreSched2()
 {
@@ -90,6 +95,7 @@ bool TeakPassConfig::addInstSelector()
 
 void TeakPassConfig::addPreEmitPass()
 {
+    addPass(createTeakOptimizeMovImmPass());
     addPass(&BranchRelaxationPassID);
 }
 

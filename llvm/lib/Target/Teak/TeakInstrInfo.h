@@ -26,6 +26,8 @@ class TeakInstrInfo : public TeakGenInstrInfo {
   const TeakRegisterInfo RI;
   virtual void anchor();
 
+  void makeRnRegDisplacement(MachineBasicBlock& mbb, MachineInstr& mi, const DebugLoc& dl, Register reg, signed short offset) const;
+
 public:
   TeakInstrInfo();
 

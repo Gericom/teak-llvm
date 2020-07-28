@@ -4,4 +4,5 @@ add_llvm_component_library(LLVMTeakDesc
   TeakMCCodeEmitter.cpp
   TeakAsmBackend.cpp
   TeakELFObjectWriter.cpp
+  TeakELFStreamer.cpp
   )

@@ -33,6 +33,9 @@ def SDT_TeakCall    : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
 def SDT_TeakCmpICC : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisSameAs<0, 1>]>;
 def TeakCmpICC : SDNode<"TeakISD::CMPICC", SDT_TeakCmpICC, [SDNPOutGlue]>;
 
+def SDT_TeakCmpzICC : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisSameAs<0, 1>]>;
+def TeakCmpzICC : SDNode<"TeakISD::CMPZICC", SDT_TeakCmpzICC, [SDNPOutGlue]>;
+
 def SDT_TeakSelectCC : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>, SDTCisSameAs<1, 2>, SDTCisVT<3, i40>]>;
 def TeakSelectICC : SDNode<"TeakISD::SELECT_ICC", SDT_TeakSelectCC, [SDNPInGlue]>;
 
@@ -78,6 +81,9 @@ def TeakOr : SDNode<"TeakISD::OR", SDT_TeakOr>;
 
 def SDT_TeakXor : SDTypeProfile<1, 2, [SDTCisInt<0>, SDTCisSameAs<1, 0>, SDTCisSameAs<2, 0>]>;
 def TeakXor : SDNode<"TeakISD::XOR", SDT_TeakXor>; 
+
+def SDT_TeakMpy : SDTypeProfile<1, 2, [SDTCisVT<0, i40>, SDTCisVT<1, i16>, SDTCisVT<2, i16>]>;
+def TeakMpy : SDNode<"TeakISD::MPY", SDT_TeakMpy>; 
 
 // //===----------------------------------------------------------------------===//
 // // Operand Definitions.

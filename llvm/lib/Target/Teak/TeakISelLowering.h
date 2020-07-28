@@ -36,6 +36,7 @@ enum NodeType {
   MOVEi32,
   CALL,
   CMPICC,
+  CMPZICC,
   BRICC,
   SELECT_ICC,
   WRAPPER,
@@ -43,7 +44,10 @@ enum NodeType {
   SHIFT_LOGIC,
   AND,
   OR,
-  XOR
+  XOR,
+  ADD,
+  SUB,
+  MPY
 };
 }
 

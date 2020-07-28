@@ -95,15 +95,111 @@ def MOD1 : TeakReg<0, "mod1">;
 def MOD2 : TeakReg<0, "mod2">;
 def MOD3 : TeakReg<0, "mod3">;
 
+def EXT0 : TeakReg<0, "ext0">;
+def EXT1 : TeakReg<0, "ext1">;
+def EXT2 : TeakReg<0, "ext2">;
+def EXT3 : TeakReg<0, "ext3">;
+
 def ICC : TeakReg<0, "ICC">;//for flag setting ops, maybe rename
+
+// Page registers: 80 fake registers that are actually in memory
+// Since memory is as fast as the cpu, there's no performance difference
+// between using those fake registers or real registers using the short
+// 8 bit page addressing mode, given that an instruction supports this ofc
+
+// The first 40 page registers are preserved over function calls
+def PAGE0 : TeakReg<0, "[page:0x0000u8]">;
+def PAGE1 : TeakReg<0, "[page:0x0001u8]">;
+def PAGE2 : TeakReg<0, "[page:0x0002u8]">;
+def PAGE3 : TeakReg<0, "[page:0x0003u8]">;
+def PAGE4 : TeakReg<0, "[page:0x0004u8]">;
+def PAGE5 : TeakReg<0, "[page:0x0005u8]">;
+def PAGE6 : TeakReg<0, "[page:0x0006u8]">;
+def PAGE7 : TeakReg<0, "[page:0x0007u8]">;
+def PAGE8 : TeakReg<0, "[page:0x0008u8]">;
+def PAGE9 : TeakReg<0, "[page:0x0009u8]">;
+def PAGE10 : TeakReg<0, "[page:0x000Au8]">;
+def PAGE11 : TeakReg<0, "[page:0x000Bu8]">;
+def PAGE12 : TeakReg<0, "[page:0x000Cu8]">;
+def PAGE13 : TeakReg<0, "[page:0x000Du8]">;
+def PAGE14 : TeakReg<0, "[page:0x000Eu8]">;
+def PAGE15 : TeakReg<0, "[page:0x000Fu8]">;
+def PAGE16 : TeakReg<0, "[page:0x0010u8]">;
+def PAGE17 : TeakReg<0, "[page:0x0011u8]">;
+def PAGE18 : TeakReg<0, "[page:0x0012u8]">;
+def PAGE19 : TeakReg<0, "[page:0x0013u8]">;
+def PAGE20 : TeakReg<0, "[page:0x0014u8]">;
+def PAGE21 : TeakReg<0, "[page:0x0015u8]">;
+def PAGE22 : TeakReg<0, "[page:0x0016u8]">;
+def PAGE23 : TeakReg<0, "[page:0x0017u8]">;
+def PAGE24 : TeakReg<0, "[page:0x0018u8]">;
+def PAGE25 : TeakReg<0, "[page:0x0019u8]">;
+def PAGE26 : TeakReg<0, "[page:0x001Au8]">;
+def PAGE27 : TeakReg<0, "[page:0x001Bu8]">;
+def PAGE28 : TeakReg<0, "[page:0x001Cu8]">;
+def PAGE29 : TeakReg<0, "[page:0x001Du8]">;
+def PAGE30 : TeakReg<0, "[page:0x001Eu8]">;
+def PAGE31 : TeakReg<0, "[page:0x001Fu8]">;
+def PAGE32 : TeakReg<0, "[page:0x0020u8]">;
+def PAGE33 : TeakReg<0, "[page:0x0021u8]">;
+def PAGE34 : TeakReg<0, "[page:0x0022u8]">;
+def PAGE35 : TeakReg<0, "[page:0x0023u8]">;
+def PAGE36 : TeakReg<0, "[page:0x0024u8]">;
+def PAGE37 : TeakReg<0, "[page:0x0025u8]">;
+def PAGE38 : TeakReg<0, "[page:0x0026u8]">;
+def PAGE39 : TeakReg<0, "[page:0x0027u8]">;
+
+// The second 40 page registers are not preserved
+def PAGE40 : TeakReg<0, "[page:0x0028u8]">;
+def PAGE41 : TeakReg<0, "[page:0x0029u8]">;
+def PAGE42 : TeakReg<0, "[page:0x002Au8]">;
+def PAGE43 : TeakReg<0, "[page:0x002Bu8]">;
+def PAGE44 : TeakReg<0, "[page:0x002Cu8]">;
+def PAGE45 : TeakReg<0, "[page:0x002Du8]">;
+def PAGE46 : TeakReg<0, "[page:0x002Eu8]">;
+def PAGE47 : TeakReg<0, "[page:0x002Fu8]">;
+def PAGE48 : TeakReg<0, "[page:0x0030u8]">;
+def PAGE49 : TeakReg<0, "[page:0x0031u8]">;
+def PAGE50 : TeakReg<0, "[page:0x0032u8]">;
+def PAGE51 : TeakReg<0, "[page:0x0033u8]">;
+def PAGE52 : TeakReg<0, "[page:0x0034u8]">;
+def PAGE53 : TeakReg<0, "[page:0x0035u8]">;
+def PAGE54 : TeakReg<0, "[page:0x0036u8]">;
+def PAGE55 : TeakReg<0, "[page:0x0037u8]">;
+def PAGE56 : TeakReg<0, "[page:0x0038u8]">;
+def PAGE57 : TeakReg<0, "[page:0x0039u8]">;
+def PAGE58 : TeakReg<0, "[page:0x003Au8]">;
+def PAGE59 : TeakReg<0, "[page:0x003Bu8]">;
+def PAGE60 : TeakReg<0, "[page:0x003Cu8]">;
+def PAGE61 : TeakReg<0, "[page:0x003Du8]">;
+def PAGE62 : TeakReg<0, "[page:0x003Eu8]">;
+def PAGE63 : TeakReg<0, "[page:0x003Fu8]">;
+def PAGE64 : TeakReg<0, "[page:0x0040u8]">;
+def PAGE65 : TeakReg<0, "[page:0x0041u8]">;
+def PAGE66 : TeakReg<0, "[page:0x0042u8]">;
+def PAGE67 : TeakReg<0, "[page:0x0043u8]">;
+def PAGE68 : TeakReg<0, "[page:0x0044u8]">;
+def PAGE69 : TeakReg<0, "[page:0x0045u8]">;
+def PAGE70 : TeakReg<0, "[page:0x0046u8]">;
+def PAGE71 : TeakReg<0, "[page:0x0047u8]">;
+def PAGE72 : TeakReg<0, "[page:0x0048u8]">;
+def PAGE73 : TeakReg<0, "[page:0x0049u8]">;
+def PAGE74 : TeakReg<0, "[page:0x004Au8]">;
+def PAGE75 : TeakReg<0, "[page:0x004Bu8]">;
+def PAGE76 : TeakReg<0, "[page:0x004Cu8]">;
+def PAGE77 : TeakReg<0, "[page:0x004Du8]">;
+def PAGE78 : TeakReg<0, "[page:0x004Eu8]">;
+def PAGE79 : TeakReg<0, "[page:0x004Fu8]">;
 
 // Register classes.
 //
 def GRRegs : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7)>;
 def RegNoBRegs40 : RegisterClass<"Teak", [i40], 32, (add A0, A1)>;
-def RegNoBRegs16 : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, B0H, B1H, B0L, B1L, A0L, A1L, A0H, A1H, LC, SV)>;
-def RegNoBRegs16_nolh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, LC, SV)>;
-def RegNoBRegs16_noh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, A0L, A1L, B0L, B1L, LC, SV)>;
+def RegNoBRegs16 : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, B0H, B1H, B0L, B1L, A0L, A1L, A0H, A1H, LC, SV, EXT0, EXT1, EXT2, EXT3)>;
+def RegNoBRegs16_nolh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, LC, SV, EXT0, EXT1, EXT2, EXT3)>;
+def RegNoBRegs16_noh : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, A0L, A1L, B0L, B1L, LC, SV, EXT0, EXT1, EXT2, EXT3)>;
+def RegNoBRegs16_page : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, B0H, B1H, B0L, B1L, A0L, A1L, A0H, A1H, LC, SV, EXT0, EXT1, EXT2, EXT3, (sequence "PAGE%u", 0, 79))>;
+def RegNoBRegs16_noh_page : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R6, R7, Y0, SP, A0L, A1L, B0L, B1L, LC, SV, EXT0, EXT1, EXT2, EXT3, (sequence "PAGE%u", 0, 79))>;
 def RegR0425 : RegisterClass<"Teak", [i16], 16, (add R0, R4, R2, R5)>;
 //def RegNoBRegsP040 : RegisterClass<"Teak", [i40], 32, (add A0, A1)>;
 //def RegNoBRegsP016 : RegisterClass<"Teak", [i16], 16, (add R0, R1, R2, R3, R4, R5, R7, Y0, /**/ SP, B0H, B1H, B0L, B1L, A0L, A1L, A0H, A1H, LC, SV)>;
@@ -112,12 +208,13 @@ def BRegs : RegisterClass<"Teak", [i40], 32, (add B0, B1)>;
 def B0Reg : RegisterClass<"Teak", [i40], 32, (add B0)>;
 def B1Reg : RegisterClass<"Teak", [i40], 32, (add B1)>;
 def ABRegs : RegisterClass<"Teak", [i40], 32, (add A0, A1, B0, B1)>;
-def ABLRegs : RegisterClass<"Teak", [i16], 16, (add A0L, A1L, B0L, B1L)>;
-def ALRegs : RegisterClass<"Teak", [i16], 16, (add A0L, A1L)>;
-// {
-//     let CopyCost = -1;
-// }
-def ABHRegs : RegisterClass<"Teak", [i16], 16, (add A0H, A1H, B0H, B1H)>;
+let CopyCost = -1 in
+{
+    def ABLRegs : RegisterClass<"Teak", [i16], 16, (add A0L, A1L, B0L, B1L)>;
+    def ALRegs : RegisterClass<"Teak", [i16], 16, (add A0L, A1L)>;
+    def ABHRegs : RegisterClass<"Teak", [i16], 16, (add A0H, A1H, B0H, B1H)>;
+    def ABERegs : RegisterClass<"Teak", [i8], 16, (add A0E, A1E, B0E, B1E)>;
+}
 def ArArpSttMod : RegisterClass<"Teak", [i16], 16, (add STT0)>;
 def FP : RegisterClass<"Teak", [i16], 16, (add R7)>;
 def Y0Regs : RegisterClass<"Teak", [i16], 16, (add Y0)>;
@@ -129,3 +226,9 @@ def SVReg : RegisterClass<"Teak", [i16], 16, (add SV)>;
 //def PRegs : RegisterClass<"Teak", [i32], 32, (add P0, P1)>;
 
 def SttModRegs : RegisterClass<"Teak", [i16], 16, (add STT0, STT1, STT2, MOD0, MOD1, MOD2, MOD3)>;
+
+def MovImm8sRegs : RegisterClass<"Teak", [i16], 16, (add A0H, A1H, EXT0, EXT1, EXT2, EXT3, R0, R1, R2, R3, R4, R5, R7, Y0, SV)>;
+
+def PAGERegs : RegisterClass<"Teak", [i16], 16, (add (sequence "PAGE%u", 0, 79))>;
+def PAGESavedRegs : RegisterClass<"Teak", [i16], 16, (add (sequence "PAGE%u", 0, 39))>;
+def PAGETrashedRegs : RegisterClass<"Teak", [i16], 16, (add (sequence "PAGE%u", 40, 79))>;

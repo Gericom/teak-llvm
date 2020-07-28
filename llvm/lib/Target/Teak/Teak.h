@@ -23,7 +23,8 @@ namespace llvm
     class TargetMachine;
     class TeakTargetMachine;
 
-    FunctionPass *createTeakISelDag(TeakTargetMachine &TM, CodeGenOpt::Level OptLevel);
+    FunctionPass* createTeakISelDag(TeakTargetMachine &TM, CodeGenOpt::Level OptLevel);
+    FunctionPass* createTeakOptimizeMovImmPass();
 
     namespace TeakCC
     {
@@ -100,6 +101,31 @@ namespace llvm
         }    
     }
 
+    inline static unsigned teakGetAbReg(unsigned reg)
+    {
+        switch(reg)
+        {
+            case Teak::A0: return Teak::A0;
+            case Teak::A0L: return Teak::A0;
+            case Teak::A0H: return Teak::A0;
+            case Teak::A0E: return Teak::A0;
+            case Teak::A1: return Teak::A1;
+            case Teak::A1L: return Teak::A1;
+            case Teak::A1H: return Teak::A1;
+            case Teak::A1E: return Teak::A1;
+            case Teak::B0: return Teak::B0;
+            case Teak::B0L: return Teak::B0;
+            case Teak::B0H: return Teak::B0;
+            case Teak::B0E: return Teak::B0;
+            case Teak::B1: return Teak::B1;
+            case Teak::B1L: return Teak::B1;
+            case Teak::B1H: return Teak::B1;
+            case Teak::B1E: return Teak::B1;
+            default:
+                llvm_unreachable("Invalid reg");
+        }
+    }
+
     inline static unsigned teakGetAbLReg(unsigned reg)
     {
         switch(reg)
@@ -129,6 +155,23 @@ namespace llvm
             case Teak::B0H: return Teak::B0H;
             case Teak::B1: return Teak::B1H;
             case Teak::B1H: return Teak::B1H;
+            default:
+                llvm_unreachable("Invalid reg");
+        }
+    }
+
+    inline static unsigned teakGetAbEReg(unsigned reg)
+    {
+        switch(reg)
+        {
+            case Teak::A0: return Teak::A0E;
+            case Teak::A0E: return Teak::A0E;
+            case Teak::A1: return Teak::A1E;
+            case Teak::A1E: return Teak::A1E;
+            case Teak::B0: return Teak::B0E;
+            case Teak::B0E: return Teak::B0E;
+            case Teak::B1: return Teak::B1E;
+            case Teak::B1E: return Teak::B1E;
             default:
                 llvm_unreachable("Invalid reg");
         }

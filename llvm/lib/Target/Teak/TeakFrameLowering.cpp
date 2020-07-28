@@ -86,33 +86,36 @@ uint64_t TeakFrameLowering::computeStackSize(MachineFunction &MF) const {
 
 void TeakFrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const
 {
-	// Compute the stack size, to determine if we need a prologue at all.
-	const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
-	MachineBasicBlock::iterator MBBI = MBB.begin();
-	DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
-	uint64_t StackSize = computeStackSize(MF);
-	if (!StackSize)
-		return;
+    // Compute the stack size, to determine if we need a prologue at all.
+    const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+    MachineBasicBlock::iterator MBBI = MBB.begin();
+    DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+    uint64_t StackSize = computeStackSize(MF);
+    if (!StackSize)
+      return;
 
-	MachineFrameInfo& MFI = MF.getFrameInfo();
-	const std::vector<CalleeSavedInfo>& CSI = MFI.getCalleeSavedInfo();
+    MachineFrameInfo& MFI = MF.getFrameInfo();
+    const std::vector<CalleeSavedInfo>& CSI = MFI.getCalleeSavedInfo();
 
-	StackSize -= CSI.size() * 2;
+    StackSize -= CSI.size() * 2;
 
-	if (!StackSize)
-		return;
+    if (!StackSize)
+      return;
 
-	BuildMI(MBB, MBBI, dl, TII.get(Teak::PUSH_regnob16), Teak::R7)
-		.setMIFlag(MachineInstr::FrameSetup);
+    BuildMI(MBB, MBBI, dl, TII.get(Teak::PUSH_regnob16), Teak::R7)
+            .setMIFlag(MachineInstr::FrameSetup);
 
-	BuildMI(MBB, MBBI, dl, TII.get(Teak::MOV_regnobp016_regnob16), Teak::R7)
-		.addReg(Teak::SP)
-		.setMIFlag(MachineInstr::FrameSetup);
+    BuildMI(MBB, MBBI, dl, TII.get(Teak::MOV_regnobp016_regnob16), Teak::R7)
+            .addReg(Teak::SP)
+            .setMIFlag(MachineInstr::FrameSetup);
 
-	BuildMI(MBB, MBBI, dl, TII.get(Teak::ADDV_imm16_RegNoBRegs16), Teak::SP)
-		.addImm(-(StackSize >> 1))
-		.addReg(Teak::SP)
-		.setMIFlag(MachineInstr::FrameSetup);
+    BuildMI(MBB, MBBI, dl, TII.get(Teak::ADDV_imm16_RegNoBRegs16), Teak::SP)
+            .addImm(-(StackSize >> 1))
+            .addReg(Teak::SP)
+            .setMIFlag(MachineInstr::FrameSetup);
+
+    BuildMI(MBB, MBBI, dl, TII.get(Teak::NOP))
+            .setMIFlag(MachineInstr::FrameSetup);
 }
 
 void TeakFrameLowering::emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const
@@ -135,6 +138,8 @@ void TeakFrameLowering::emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB
 
     BuildMI(MBB, MBBI, dl, TII.get(Teak::MOV_regnobp016_regnob16), Teak::SP)
             .addReg(Teak::R7)
+            .setMIFlag(MachineInstr::FrameSetup);
+    BuildMI(MBB, MBBI, dl, TII.get(Teak::NOP))
             .setMIFlag(MachineInstr::FrameSetup);
     BuildMI(MBB, MBBI, dl, TII.get(Teak::POP_regnob16), Teak::R7)
             .setMIFlag(MachineInstr::FrameSetup);
