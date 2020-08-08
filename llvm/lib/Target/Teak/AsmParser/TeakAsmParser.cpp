@@ -314,6 +314,18 @@ bool TeakAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode, Opera
         Out.EmitInstruction(Inst, getSTI());
         return false;
     }
+    else if(((TeakOperand&)*Operands[0]).getToken() == "callr")
+    {
+        std::string cc = ((TeakOperand&)*Operands[2]).getToken();
+        TeakCC::CondCodes condition;
+        if(!ParseConditionOp(cc, condition))
+            return Error(IDLoc, "Invalid condition code!");
+        Inst.setOpcode(Teak::CALLR_rel7);
+        Inst.addOperand(MCOperand::createExpr(MCSymbolRefExpr::create(((TeakOperand&)*Operands[1]).getToken(), MCSymbolRefExpr::VK_None, getContext())));
+        Inst.addOperand(MCOperand::createImm((int)condition));
+        Out.EmitInstruction(Inst, getSTI());
+        return false;
+    }
     else if(((TeakOperand&)*Operands[0]).getToken() == "br")
     {
         std::string cc = ((TeakOperand&)*Operands[2]).getToken();
@@ -323,6 +335,72 @@ bool TeakAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode, Opera
         Inst.setOpcode(Teak::BR_imm18);
         Inst.addOperand(MCOperand::createExpr(MCSymbolRefExpr::create(((TeakOperand&)*Operands[1]).getToken(), MCSymbolRefExpr::VK_None, getContext())));
         Inst.addOperand(MCOperand::createImm((int)condition));
+        Out.EmitInstruction(Inst, getSTI());
+        return false;
+    }
+    else if(((TeakOperand&)*Operands[0]).getToken() == "brr")
+    {
+        std::string cc = ((TeakOperand&)*Operands[2]).getToken();
+        TeakCC::CondCodes condition;
+        if(!ParseConditionOp(cc, condition))
+            return Error(IDLoc, "Invalid condition code!");
+        Inst.setOpcode(Teak::BRRCond_rel7);
+        Inst.addOperand(MCOperand::createExpr(MCSymbolRefExpr::create(((TeakOperand&)*Operands[1]).getToken(), MCSymbolRefExpr::VK_None, getContext())));
+        Inst.addOperand(MCOperand::createImm((int)condition));
+        Out.EmitInstruction(Inst, getSTI());
+        return false;
+    }
+    else if(((TeakOperand&)*Operands[0]).getToken() == "bkrep")
+    {
+        std::string regString = ((TeakOperand&)*Operands[1]).getToken();
+
+        Inst.setOpcode(Teak::BKREP_reg16);
+
+        int reg = -1;
+        if (regString == "a0l")
+            reg = Teak::A0L;
+        else if (regString == "a1l")
+            reg = Teak::A1L;
+        else if (regString == "b0l")
+            reg = Teak::B0L;
+        else if (regString == "b1l")
+            reg = Teak::B1L;
+        else if (regString == "a0h")
+            reg = Teak::A0H;
+        else if (regString == "a1h")
+            reg = Teak::A1H;
+        else if (regString == "b0h")
+            reg = Teak::B0H;
+        else if (regString == "b1h")
+            reg = Teak::B1H;
+        else if (regString == "r0")
+            reg = Teak::R0;
+        else if (regString == "r1")
+            reg = Teak::R1;
+        else if (regString == "r2")
+            reg = Teak::R2;
+        else if (regString == "r3")
+            reg = Teak::R3;
+        else if (regString == "r4")
+            reg = Teak::R4;
+        else if (regString == "r5")
+            reg = Teak::R5;
+        else if (regString == "r6")
+            reg = Teak::R6;
+        else if (regString == "r7")
+            reg = Teak::R7;
+        else if (regString == "y0")
+            reg = Teak::Y0;
+        else if (regString == "sv")
+            reg = Teak::SV;
+        else if (regString == "lc")
+            reg = Teak::LC;
+
+        if (reg == -1)
+            return Error(IDLoc, "Invalid register for bkrep");
+
+        Inst.addOperand(MCOperand::createReg(reg));
+        Inst.addOperand(MCOperand::createExpr(MCSymbolRefExpr::create(((TeakOperand&)*Operands[2]).getToken(), MCSymbolRefExpr::VK_None, getContext())));
         Out.EmitInstruction(Inst, getSTI());
         return false;
     }
@@ -509,6 +587,19 @@ bool TeakAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
             }
             else
                 Operands.push_back(TeakOperand::createToken(op + formatString("0x%04x", val), loc, true, hasSign, false, val * mul));
+        }
+        else if (Tok.is(AsmToken::Identifier))
+        {
+            std::string reg = Tok.getString();
+            getParser().Lex();
+            const AsmToken &Tok2 = getParser().getTok();
+            if (reg == "p" && Tok2.is(AsmToken::Star))
+            {
+                Operands.push_back(TeakOperand::createToken("p*", loc));
+                getParser().Lex();
+            }
+            else
+                Operands.push_back(TeakOperand::createToken(reg, loc));
         }
         else
         {        

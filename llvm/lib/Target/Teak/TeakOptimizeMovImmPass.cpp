@@ -35,6 +35,7 @@ bool TeakOptimizeMovImmPass::runOnMachineFunction(MachineFunction& mf)
     const TargetInstrInfo* tii = mf.getSubtarget().getInstrInfo();
 
     std::vector<MachineInstr*> movImms;
+    std::vector<MachineInstr*> addvSubvReg;
 
     for (auto& mbb : mf)
     {
@@ -46,6 +47,8 @@ bool TeakOptimizeMovImmPass::runOnMachineFunction(MachineFunction& mf)
             {
                 movImms.push_back(&mi);
             }
+            else if (mi.getOpcode() == Teak::ADDV_imm16_RegNoBRegs16 || mi.getOpcode() == Teak::SUBV_imm16_RegNoBRegs16)
+                addvSubvReg.push_back(&mi);
         }
     }
 
@@ -82,6 +85,48 @@ bool TeakOptimizeMovImmPass::runOnMachineFunction(MachineFunction& mf)
             mi->eraseFromParent();
             changed = true;
         }        
+    }
+
+    for (auto mi : addvSubvReg)
+    {
+        if (!mi->getOperand(1).isImm())
+            continue;
+        unsigned dstReg = mi->getOperand(0).getReg();
+        if (!TeakMCRegisterClasses[Teak::GRRegsRegClassID].contains(dstReg))
+            continue;
+
+        int16_t imm = (int16_t)mi->getOperand(1).getImm();
+        if (mi->getOpcode() == Teak::SUBV_imm16_RegNoBRegs16)
+            imm = -imm;
+
+        if (imm == 1)
+        {
+            BuildMI(*mi->getParent(), *mi, mi->getDebugLoc(), tii->get(Teak::MODR_inc1), dstReg)
+                .addReg(dstReg);
+            mi->eraseFromParent();
+            changed = true;
+        }
+        else if (imm == -1)
+        {
+            BuildMI(*mi->getParent(), *mi, mi->getDebugLoc(), tii->get(Teak::MODR_dec1), dstReg)
+                .addReg(dstReg);
+            mi->eraseFromParent();
+            changed = true;
+        }
+        else if (imm == 2)
+        {
+            BuildMI(*mi->getParent(), *mi, mi->getDebugLoc(), tii->get(Teak::MODR_inc2), dstReg)
+                .addReg(dstReg);
+            mi->eraseFromParent();
+            changed = true;
+        }
+        else if (imm == -2)
+        {
+            BuildMI(*mi->getParent(), *mi, mi->getDebugLoc(), tii->get(Teak::MODR_dec2), dstReg)
+                .addReg(dstReg);
+            mi->eraseFromParent();
+            changed = true;
+        }
     }
 
     return changed;

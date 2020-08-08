@@ -69,6 +69,16 @@ void Teak::relocateOne(uint8_t *loc, RelType type, uint64_t val) const
 		case R_TEAK_PTR_IMM16:
 			write16le(loc + 2, (val >> 1) & 0xFFFF);
 			break;
+		case R_TEAK_BKREP_REG:
+			val -= 2;
+			write16le(loc, (read16le(loc) & ~0x60) | (((val >> 17) & 3) << 5));
+			write16le(loc + 2, (val >> 1) & 0xFFFF);
+			break;
+		case R_TEAK_BKREP_R6:
+			val -= 2;
+			write16le(loc, (read16le(loc) & ~3) | ((val >> 17) & 3));
+			write16le(loc + 2, (val >> 1) & 0xFFFF);
+			break;
 		default:
 			error(getErrorLocation(loc) + "unrecognized relocation " + toString(type));
 	}
@@ -82,6 +92,10 @@ int64_t Teak::getImplicitAddend(const uint8_t* buf, RelType type) const
 			return (((read16le(buf) >> 4) & 3) << 17) | (read16le(buf + 2) << 1);
 		case R_TEAK_PTR_IMM16:
 			return read16le(buf + 2) << 1;
+		case R_TEAK_BKREP_REG:
+			return (((read16le(buf) >> 5) & 3) << 17) | (read16le(buf + 2) << 1) + 2;
+		case R_TEAK_BKREP_R6:
+			return ((read16le(buf) & 3) << 17) | (read16le(buf + 2) << 1) + 2;
 		default:
 			error("unrecognized relocation " + toString(type));
 	}

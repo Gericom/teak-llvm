@@ -59,6 +59,8 @@ public:
         { "fixup_teak_call_imm18", 0, 18, 0 },
         { "fixup_teak_rel7", 0, 7, MCFixupKindInfo::FKF_IsPCRel },
         { "fixup_teak_ptr_imm16", 0, 16, 0 },
+        { "fixup_teak_bkrep_reg", 0, 18, 0 },
+        { "fixup_teak_bkrep_r6", 0, 18, 0 },
     };
 
     if (Kind < FirstTargetFixupKind)
@@ -131,6 +133,16 @@ void TeakAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
             break;
         case Teak::fixup_teak_ptr_imm16:
             write16le(&Data[Offset + 2], Value);
+            break;
+        case Teak::fixup_teak_bkrep_reg:
+            Value--; //bkrep wants as address the last instruction word
+            write16le(&Data[Offset], (read16le(&Data[Offset]) & ~0x60) | (((Value >> 16) & 3) << 5));
+            write16le(&Data[Offset + 2], Value & 0xFFFF);
+            break;
+        case Teak::fixup_teak_bkrep_r6:
+            Value--; //bkrep wants as address the last instruction word
+            write16le(&Data[Offset], (read16le(&Data[Offset]) & ~3) | ((Value >> 16) & 3));
+            write16le(&Data[Offset + 2], Value & 0xFFFF);
             break;
     }
 //   unsigned NumBytes = 4;

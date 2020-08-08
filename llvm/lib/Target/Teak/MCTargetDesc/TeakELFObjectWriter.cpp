@@ -56,6 +56,12 @@ unsigned TeakELFObjectWriter::getRelocType(MCContext &Ctx,
   case Teak::fixup_teak_ptr_imm16:
     Type = ELF::R_TEAK_PTR_IMM16;
     break;
+  case Teak::fixup_teak_bkrep_reg:
+    Type = ELF::R_TEAK_BKREP_REG;
+    break;
+  case Teak::fixup_teak_bkrep_r6:
+    Type = ELF::R_TEAK_BKREP_R6;
+    break;
   }
   return Type;
 }

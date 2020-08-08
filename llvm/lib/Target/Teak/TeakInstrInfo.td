@@ -237,10 +237,10 @@ let Defs = [ICC] in
 
     let Constraints = "$dst = $a" in
     {
-        def MODR_inc1 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr [${a}++]", [(set GRRegs:$dst, (add GRRegs:$a, 1))]>;
-        def MODR_dec1 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr [${a}--]", [(set GRRegs:$dst, (add GRRegs:$a, -1))]>;
-        def MODR_inc2 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr ${a}, +2", [(set GRRegs:$dst, (add GRRegs:$a, 2))]>;
-        def MODR_dec2 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr ${a}, -2", [(set GRRegs:$dst, (add GRRegs:$a, -2))]>;
+        def MODR_inc1 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr [${a}++]", []>;//(set GRRegs:$dst, (add GRRegs:$a, 1))]>;
+        def MODR_dec1 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr [${a}--]", []>;//(set GRRegs:$dst, (add GRRegs:$a, -1))]>;
+        def MODR_inc2 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr ${a}, +2", []>;//(set GRRegs:$dst, (add GRRegs:$a, 2))]>;
+        def MODR_dec2 : InstTeak<(outs GRRegs:$dst), (ins GRRegs:$a), "modr ${a}, -2", []>;//(set GRRegs:$dst, (add GRRegs:$a, -2))]>;
     }
 
     let Constraints = "$dst = $a" in
@@ -623,6 +623,9 @@ def BRR_rel7 : InstTeak<(outs), (ins Operand<OtherVT>:$addr), "brr $addr, always
 
 let isBranch = 1, isTerminator = 1 in
 def BR_imm18 : InstTeakImm16<(outs), (ins Operand<OtherVT>:$addr, pred:$p), "br $addr, $p", []>;
+
+let Defs = [LC] in
+def BKREP_reg16 : InstTeakImm16<(outs), (ins RegNoBRegs16:$it, Operand<OtherVT>:$addr), "bkre $it, $addr", []>;
 
 let isCall = 1, Uses = [SP] in 
 def CALLR_rel7 : InstTeak<(outs), (ins Operand<i40>:$addr, pred:$p), "callr $addr, $p", []>;

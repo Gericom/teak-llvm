@@ -495,6 +495,23 @@ void TeakMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
         case Teak::AND_memrn_a:
             EmitConstant(0x8280 | encodeRnOp(MI.getOperand(1).getReg()) | (encodeAxOp(MI.getOperand(0).getReg()) << 8), 2, OS);
             break;
+        case Teak::BKREP_reg16:
+        {
+            unsigned lcReg = MI.getOperand(0).getReg();
+            if (lcReg == Teak::R6)
+            {
+                EmitConstant(0x8FDC, 2, OS);
+                EmitConstant(0, 2, OS);
+                Fixups.push_back(MCFixup::create(0, MI.getOperand(1).getExpr(), MCFixupKind(Teak::fixup_teak_bkrep_r6)));
+            }
+            else
+            {
+                EmitConstant(0x5D00 | encodeRegisterOp(lcReg), 2, OS);
+                EmitConstant(0, 2, OS);
+                Fixups.push_back(MCFixup::create(0, MI.getOperand(1).getExpr(), MCFixupKind(Teak::fixup_teak_bkrep_reg)));
+            }
+            break;
+        }
         case Teak::BRR_rel7:
         case Teak::BRRCond_rel7:
             EmitConstant(0x5000 | (MI.getOpcode() == Teak::BRR_rel7 ? 0 : MI.getOperand(1).getImm()), 2, OS);
