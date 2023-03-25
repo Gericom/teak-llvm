@@ -100,7 +100,7 @@ void TeakPassConfig::addPreEmitPass()
 }
 
 // Force static initialization.
-extern "C" void LLVMInitializeTeakTarget()
+extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeTeakTarget()
 {
     RegisterTargetMachine<TeakTargetMachine> X(getTheTeakTarget());
 }
