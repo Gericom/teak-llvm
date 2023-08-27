@@ -151,6 +151,16 @@ std::string DsmReg(RegName a) {
         return "st1";
     case RegName::st2:
         return "st2";
+		
+	case RegName::ext0:
+		return "ext0";	
+	case RegName::ext1:
+		return "ext1";	
+	case RegName::ext2:
+		return "ext2";	
+	case RegName::ext3:
+		return "ext3";
+		
     default:
         return "[ERROR]" + std::to_string((int)a);
     }
