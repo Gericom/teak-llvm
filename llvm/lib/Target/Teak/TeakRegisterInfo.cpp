@@ -226,7 +226,7 @@ void TeakRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
 void TeakRegisterInfo::resolveFrameIndex(MachineInstr &MI, unsigned BaseReg, int64_t Offset) const
 {
     dbgs() << "resolveFrameIndex\n";
-    MI.dump();
+    //MI.dump();
     const MachineFunction &MF = *MI.getParent()->getParent();
     const MachineFrameInfo& MFI = MF.getFrameInfo();
     MachineOperand* FIOp;
@@ -263,7 +263,7 @@ bool TeakRegisterInfo::shouldCoalesce(MachineInstr *MI, const TargetRegisterClas
     const TargetRegisterClass *DstRC, unsigned DstSubReg, const TargetRegisterClass *NewRC, LiveIntervals &LIS) const
 {
     dbgs() << "shouldCoalesce\n";
-    MI->dump();
+    //MI->dump();
     dbgs() << "SrcRC: " << SrcRC->getID() << "\n";
     dbgs() << "SubReg: " << SubReg << "\n";
     dbgs() << "DstRC: " << DstRC->getID() << "\n";

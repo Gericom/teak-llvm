@@ -136,7 +136,7 @@ bool TeakDAGToDAGISel::SelectLoad(SDNode* node)
 	const LoadSDNode* ld = cast<LoadSDNode>(node);
 	ISD::MemIndexedMode idxMode = ld->getAddressingMode();
   	MVT vType = ld->getMemoryVT().getSimpleVT();
-	ld->dump();
+	//ld->dump();
 	dbgs() << "mode: " << idxMode << "\n";
 	if(idxMode != ISD::POST_INC && idxMode != ISD::POST_DEC)
 		return false;

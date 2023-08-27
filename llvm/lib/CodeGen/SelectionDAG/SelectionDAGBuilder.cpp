@@ -3870,7 +3870,7 @@ void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
   // element which holds a pointer.
   unsigned AS = Op0->getType()->getScalarType()->getPointerAddressSpace();
   SDValue N = getValue(Op0);
-  N.dump();
+  //N.dump();
   SDLoc dl = getCurSDLoc();
   auto &TLI = DAG.getTargetLoweringInfo();
   MVT PtrTy = TLI.getPointerTy(DAG.getDataLayout(), AS);
@@ -4010,7 +4010,7 @@ void SelectionDAGBuilder::visitGetElementPtr(const User &I) {
   if (PtrMemTy != PtrTy && !cast<GEPOperator>(I).isInBounds())
     N = DAG.getPtrExtendInReg(N, dl, PtrMemTy);
 
-  DAG.dump();
+  //DAG.dump();
 
   setValue(&I, N);
 }

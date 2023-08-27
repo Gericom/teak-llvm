@@ -438,7 +438,7 @@ SDValue TeakTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const
 	switch (Op.getOpcode()) 
 	{
 		default:
-			Op.dump(&DAG);
+			//Op.dump(&DAG);
 			llvm_unreachable("Unimplemented operand");
 	//case ISD::SELECT:        return LowerSELECT(Op, DAG);
 		case ISD::SELECT_CC:
@@ -965,8 +965,8 @@ void TeakTargetLowering::ReplaceNodeResults(SDNode *N,
 											SelectionDAG &DAG) const
 {
 	dbgs() << "Opcode = " << N->getOpcode();
-	DAG.dump();
-	N->dumpr(&DAG);
+	//DAG.dump();
+	//N->dumpr(&DAG);
 	SDLoc dl(N);
 	// if(N->getOpcode() == ISD::GlobalAddress)
 	// {

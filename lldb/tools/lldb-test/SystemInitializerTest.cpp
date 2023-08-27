@@ -145,6 +145,7 @@ SystemInitializerTest::~SystemInitializerTest() {}
 #define LLDB_PROCESS_Sparc(op)
 #define LLDB_PROCESS_WebAssembly(op)
 #define LLDB_PROCESS_XCore(op)
+#define LLDB_PROCESS_Teak(op)
 
 llvm::Error SystemInitializerTest::Initialize() {
   if (auto e = SystemInitializerCommon::Initialize())
