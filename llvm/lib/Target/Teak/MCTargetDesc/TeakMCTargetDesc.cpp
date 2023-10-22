@@ -83,7 +83,7 @@ static MCStreamer* createTeakMCStreamer(const Triple &T, MCContext &Context,
 }
 
 // Force static initialization.
-extern "C" void LLVMInitializeTeakTargetMC()
+extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeTeakTargetMC()
 {
     // Register the MC asm info.
     RegisterMCAsmInfoFn X(getTheTeakTarget(), createTeakMCAsmInfo);

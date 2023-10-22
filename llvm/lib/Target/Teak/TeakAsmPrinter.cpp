@@ -81,6 +81,6 @@ void TeakAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 }
 
 // Force static initialization.
-extern "C" void LLVMInitializeTeakAsmPrinter() {
+extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeTeakAsmPrinter() {
   RegisterAsmPrinter<TeakAsmPrinter> X(getTheTeakTarget());
 }
